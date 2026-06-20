@@ -1,0 +1,223 @@
+---
+title: "Towers of Hanoi: Recursive Solution and Browser UI in JavaScript"
+sidebarTitle: "Towers of Hanoi"
+description: "Implement the Towers of Hanoi puzzle in JavaScript with a recursive algorithm, render three towers as interactive browser UI, track move count, and animate disk movement — from the Area Juegos project."
+---
+
+The Towers of Hanoi is a mathematical puzzle with a deceptively simple rule set: move all **N disks** from tower **A** to tower **C**, using tower **B** as auxiliary, and never place a larger disk on top of a smaller one. Despite the simple rules, solving it optimally requires exactly **2ⁿ − 1** moves — and the recursive structure of that solution maps beautifully to JavaScript.
+
+This project implements a fully interactive browser UI with three clickable towers, live move counting, colored disks sized proportionally to their value, and an **auto-solve** button that animates the optimal solution step by step.
+
+---
+
+## State Representation
+
+The game state is stored as an array of three stacks — one per tower. Each stack is a plain JavaScript array of integers where the integer represents the disk's size (1 = smallest, 5 = largest). Disks are stored bottom-to-top, so the last element of each array is the top disk.
+
+```javascript title="Initial state and global variables"
+const estadoInicial = [
+  [5, 4, 3, 2, 1],  // Tower A — all 5 disks stacked largest to smallest
+  [],               // Tower B — empty
+  []                // Tower C — empty
+];
+
+let torres = JSON.parse(JSON.stringify(estadoInicial)); // deep copy
+let origen = null;       // index of the tower selected as source
+let movimientos = 0;     // move counter
+let resolviendo = false; // lock flag during auto-solve animation
+```
+
+`JSON.parse(JSON.stringify(...))` creates a deep clone of the initial state so that the restart button can always restore to this exact snapshot without mutation.
+
+The five disk sizes map to five distinct colors through the `colores` array:
+
+```javascript title="Color mapping for disks"
+const colores = [
+  "#ef4444",  // size 1 — red
+  "#f97316",  // size 2 — orange
+  "#eab308",  // size 3 — yellow
+  "#22c55e",  // size 4 — green
+  "#3b82f6"   // size 5 — blue
+];
+```
+
+---
+
+## Rendering
+
+The `renderizar()` function is called after every state change. It clears all `.disco` elements from the DOM, then rebuilds the tower contents from the `torres` array. Disk widths are calculated proportionally so larger disks are visually wider:
+
+```javascript title="renderizar() — DOM rebuild after each move"
+function renderizar() {
+  document.querySelectorAll(".torre").forEach((torre, index) => {
+
+    // Clear existing disks from this tower's DOM node
+    torre.querySelectorAll(".disco").forEach(d => d.remove());
+
+    // Re-render each disk in the current stack
+    torres[index].forEach(tam => {
+      const disco = document.createElement("div");
+      disco.classList.add("disco");
+
+      // Width scales with disk size: size 1 → 85px, size 5 → 225px
+      disco.style.width = `${tam * 35 + 50}px`;
+      disco.style.background = colores[tam - 1];
+
+      torre.appendChild(disco);
+    });
+  });
+
+  // Update the move counter display
+  contador.textContent = movimientos;
+}
+```
+
+The formula `tam * 35 + 50` gives each disk a base width of 50 px plus 35 px per unit of size, creating clearly distinguishable widths from 85 px (smallest) to 225 px (largest).
+
+---
+
+## User Interaction
+
+Clicking a tower triggers a two-step interaction: the first click selects the **source** tower (highlighted with a drop-shadow glow), and the second click selects the **destination** and attempts the move.
+
+```javascript title="Click handler — source/destination selection"
+document.querySelectorAll(".torre").forEach(torre => {
+  torre.addEventListener("click", () => {
+
+    if (resolviendo) return; // ignore clicks during auto-solve
+
+    const indice = Number(torre.dataset.torre);
+
+    if (origen === null) {
+      // First click — select source tower
+      origen = indice;
+      torre.style.filter = "drop-shadow(0 0 15px #38bdf8)";
+    } else {
+      // Second click — attempt to move disk to destination
+      document.querySelectorAll(".torre")
+        .forEach(t => t.style.filter = "none");
+
+      moverDisco(origen, indice);
+      origen = null;
+    }
+  });
+});
+```
+
+### Move Validation
+
+`moverDisco()` enforces the core game rule — you can only place a disk on an empty tower or on top of a larger disk:
+
+```javascript title="moverDisco() — validation and state update"
+function moverDisco(origen, destino) {
+  if (torres[origen].length === 0) return; // nothing to move
+
+  const disco = torres[origen][torres[origen].length - 1]; // top disk
+
+  if (
+    torres[destino].length === 0 ||                              // destination empty
+    disco < torres[destino][torres[destino].length - 1]          // disk fits on top
+  ) {
+    torres[origen].pop();
+    torres[destino].push(disco);
+    movimientos++;
+    verificarVictoria();
+    renderizar();
+  }
+}
+```
+
+If the move is invalid (attempting to place a larger disk on a smaller one), the function returns silently — no state change, no re-render.
+
+---
+
+## The Recursive Solver
+
+The auto-solve feature uses a classic recursive algorithm to generate the complete optimal move sequence. `generarMovimientos()` produces an ordered list of `[origin, destination]` pairs, then `resolverAutomaticamente()` plays them back with a 500 ms delay between each step.
+
+```javascript title="generarMovimientos() — recursive move generation"
+function generarMovimientos(n, origen, auxiliar, destino, pasos = []) {
+  if (n === 1) {
+    // Base case: move the single remaining disk directly to destination
+    pasos.push([origen, destino]);
+    return pasos;
+  }
+
+  // Step 1: move top n-1 disks from origen → auxiliar (using destino as buffer)
+  generarMovimientos(n - 1, origen, destino, auxiliar, pasos);
+
+  // Step 2: move the largest disk from origen → destino
+  pasos.push([origen, destino]);
+
+  // Step 3: move the n-1 disks from auxiliar → destino (using origen as buffer)
+  generarMovimientos(n - 1, auxiliar, origen, destino, pasos);
+
+  return pasos;
+}
+```
+
+The three-step structure is the heart of the Towers of Hanoi solution: move the stack above the largest disk out of the way, move the largest disk to its final position, then stack everything back on top.
+
+### Animated Playback
+
+```javascript title="resolverAutomaticamente() — async animation loop"
+async function resolverAutomaticamente() {
+  if (resolviendo) return;
+  resolviendo = true;
+
+  const pasos = generarMovimientos(5, 0, 1, 2); // 5 disks, A→C via B
+
+  for (const [o, d] of pasos) {
+    moverDisco(o, d);
+    await new Promise(resolve => setTimeout(resolve, 500)); // 500 ms between moves
+  }
+
+  resolviendo = false;
+}
+```
+
+The `resolviendo` flag prevents user clicks from interfering with the animation. Each move is applied to the state and re-rendered, then the loop pauses 500 ms via a `Promise`/`setTimeout` combination before proceeding to the next step.
+
+---
+
+## Optimal Move Sequence for 5 Disks
+
+The pre-computed solution table from the README shows all 31 moves (2⁵ − 1 = **31**) for the 5-disk puzzle:
+
+| Move | From | To | | Move | From | To |
+|------|------|----|-|------|------|-----|
+| 1    | A    | C  | | 17   | B    | A  |
+| 2    | A    | B  | | 18   | B    | C  |
+| 3    | C    | B  | | 19   | A    | C  |
+| 4    | A    | C  | | 20   | B    | A  |
+| 5    | B    | A  | | 21   | C    | B  |
+| 6    | B    | C  | | 22   | C    | A  |
+| 7    | A    | C  | | 23   | B    | A  |
+| 8    | A    | B  | | 24   | B    | C  |
+| 9    | C    | B  | | 25   | A    | C  |
+| ...  | ...  | ...| | 31   | A    | C  |
+
+This sequence is generated automatically by the recursive algorithm — you never have to hardcode it.
+
+---
+
+## Restart
+
+The restart button restores the initial state with a deep clone and resets all counters:
+
+```javascript title="Restart handler"
+document.getElementById("reiniciar").addEventListener("click", () => {
+  torres = JSON.parse(JSON.stringify(estadoInicial));
+  movimientos = 0;
+  origen = null;
+
+  document.querySelectorAll(".torre")
+    .forEach(t => t.style.filter = "none");
+
+  renderizar();
+});
+```
+
+<Note>
+  The minimum number of moves to solve the Towers of Hanoi with **N disks** is always **2ⁿ − 1**. For the 5-disk puzzle that means 31 moves. For 10 disks it's 1,023 — and for 64 disks (the mythical temple version of the legend) it's over 18 quintillion moves. At one move per second, that would take roughly 585 billion years.
+</Note>

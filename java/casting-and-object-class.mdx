@@ -1,0 +1,232 @@
+---
+title: "Object Casting, Upcasting, Downcasting, and hashCode in Java"
+sidebarTitle: "Casting & Object"
+description: "Learn how to convert between object types in Java using upcasting and downcasting, override hashCode and equals for value comparison, and work with the root Object class."
+---
+
+Polymorphic code is powerful precisely because a single `Empleado` variable can hold a `Gerente`, an `Escritor`, or any other subclass. But the flip side is that, from time to time, you need to reach past the parent interface and call a child-specific method — `getTipoEscritura()` on an `Escritor`, for example. That is where **casting** comes in: the controlled conversion of an object reference from one type in the hierarchy to another. Understanding the difference between safe implicit upcasting and the riskier explicit downcasting is essential for writing robust Java programs.
+
+---
+
+## Upcasting and Downcasting
+
+### Upcasting — implicit and always safe
+
+**Upcasting** stores a child object in a parent-type variable. Java performs this automatically because every child **is-a** instance of its parent; no explicit cast syntax is needed. You lose access to child-specific methods through that reference, but the real object on the heap is unchanged.
+
+```java title="test/TestConversionObjetos.java — upcasting"
+package test;
+
+import domain.*;
+
+public class TestConversionObjetos {
+    public static void main(String[] args) {
+        // Upcasting: Escritor → Empleado (implicit, safe)
+        Empleado empleado = new Escritor("Juan", 5000, TipoEscritura.CLASICO);
+
+        // obtenerDetalles() is available — it is defined on Empleado
+        System.out.println(empleado.obtenerDetalles());
+
+        // empleado.getTipoEscritura(); ← compile error: not visible through Empleado ref
+    }
+}
+```
+
+### Downcasting — explicit and requires a guard
+
+**Downcasting** goes the other way: from parent type back to child type. You must write the cast explicitly with `(ChildType)`. If the real runtime object is not of that child type, Java throws `ClassCastException`.
+
+<Warning>
+  **Never downcast without an `instanceof` check.** If `empleado` actually holds a plain `Empleado` (or a different subclass) and you cast it to `Escritor`, the JVM throws `ClassCastException` at runtime — even though the code compiles cleanly. Always verify the real type first.
+</Warning>
+
+```java title="test/TestConversionObjetos.java — downcasting"
+package test;
+
+import domain.*;
+
+public class TestConversionObjetos {
+    public static void main(String[] args) {
+        Empleado empleado;
+        empleado = new Escritor("Juan", 5000, TipoEscritura.CLASICO);
+
+        // Option 1 — inline downcast (one-liner)
+        // ((Escritor) empleado).getTipoEscritura();
+
+        // Option 2 — assign to a typed variable (clearer, preferred)
+        Escritor escritor = (Escritor) empleado;
+        escritor.getTipoEscritura();
+
+        // Upcasting back: Escritor → Empleado (implicit again)
+        Empleado empleado2 = escritor;
+        System.out.println(empleado2.obtenerDetalles());
+    }
+}
+```
+
+### The `Escritor` class
+
+`Escritor` extends `Empleado` and adds a `TipoEscritura` field. It overrides both `obtenerDetalles()` and `toString()` from the parent chain.
+
+```java title="domain/Escritor.java"
+package domain;
+
+public class Escritor extends Empleado {
+    final TipoEscritura tipoEscritura;
+
+    public Escritor(String nombre, double sueldo, TipoEscritura tipoEscritura) {
+        super(nombre, sueldo);
+        this.tipoEscritura = tipoEscritura;
+    }
+
+    @Override
+    public String obtenerDetalles() {
+        return super.obtenerDetalles() + ", Tipo Escritura: " + tipoEscritura.getDescripcion();
+    }
+
+    @Override
+    public String toString() {
+        return "Escritor{" + "tipoEscritura=" + tipoEscritura + "} " + super.toString();
+    }
+
+    public TipoEscritura getTipoEscritura() {
+        return this.tipoEscritura;
+    }
+}
+```
+
+<Accordion title="Safe downcast pattern with instanceof">
+  The safest approach combines `instanceof` with an immediate cast:
+
+  ```java
+  if (empleado instanceof Escritor) {
+      Escritor escritor = (Escritor) empleado;
+      System.out.println(escritor.getTipoEscritura());
+  }
+  ```
+
+  Java 16+ offers the **pattern-matching** shorthand `if (empleado instanceof Escritor e)` which binds the cast variable in one step, but the classic form above works in all Java versions.
+</Accordion>
+
+---
+
+## The `Object` Class — Root of Every Java Class
+
+Every class in Java silently extends `java.lang.Object`. You never have to write `extends Object` — the compiler adds it for you when no other parent is declared. This means every object you create already inherits a set of fundamental methods.
+
+### Key methods inherited from `Object`
+
+| Method | Default behaviour | Typical override |
+|---|---|---|
+| `toString()` | Returns `ClassName@hashCode` | Return a human-readable representation |
+| `equals(Object)` | Compares **references** (`==`) | Compare **field values** |
+| `hashCode()` | Memory-address-based integer | Compute from the same fields as `equals` |
+| `getClass()` | Returns the runtime `Class` object | Usually not overridden |
+
+### Reference equality vs. content equality
+
+Without overriding `equals`, two `Empleado` objects with the same name and salary are **not equal** by default — they are two separate objects in memory.
+
+```java title="test/TestClaseObject.java"
+package test;
+
+import domain.*;
+
+public class TestClaseObject {
+    public static void main(String[] args) {
+        Empleado empleado1 = new Empleado("Juan", 5000);
+        Empleado empleado2 = new Empleado("Juan", 5000);
+
+        // == compares references (memory addresses)
+        if (empleado1 == empleado2) {
+            System.out.println("Tienen la misma referencia en memoria");
+        } else {
+            System.out.println("Tienen distinta referencia en memoria"); // ← this prints
+        }
+
+        // equals() — default Object behaviour also uses ==
+        if (empleado1.equals(empleado2)) {
+            System.out.println("Los objetos son iguales en contenido");
+        } else {
+            System.out.println("Los objetos son distintos en contenido"); // ← this prints
+        }
+
+        // hashCode() — each object has a different hash by default
+        if (empleado1.hashCode() == empleado2.hashCode()) {
+            System.out.println("El valor hashCode es igual");
+        } else {
+            System.out.println("El valor hashCode es diferente"); // ← this prints
+        }
+    }
+}
+```
+
+---
+
+## Overriding `hashCode` and `equals`
+
+### The contract
+
+Java's `hashCode`/`equals` contract, which collections like `HashMap` and `HashSet` depend on, states:
+
+1. If `a.equals(b)` is `true`, then `a.hashCode()` **must** equal `b.hashCode()`.
+2. If two objects have the same `hashCode`, they **may or may not** be equal (`equals` is the final arbiter).
+3. **Always override both together** — overriding only one breaks the contract and produces mysterious bugs in collections.
+
+### Implementation on `Empleado`
+
+The example below computes `hashCode` from `nombre` and `sueldo` using a prime-number formula, and implements `equals` by comparing those same fields field by field.
+
+<CodeGroup>
+```java title="domain/Empleado.java — hashCode"
+@Override
+public int hashCode() {
+    int hash = 7;
+    hash = 53 * hash + Objects.hashCode(this.nombre);
+    hash = 53 * hash + (int) (Double.doubleToLongBits(this.sueldo)
+                             ^ (Double.doubleToLongBits(this.sueldo) >>> 32));
+    return hash;
+}
+```
+
+```java title="domain/Empleado.java — equals"
+@Override
+public boolean equals(Object obj) {
+    if (this == obj) {
+        return true;             // same reference → always equal
+    }
+    if (obj == null) {
+        return false;            // null is never equal
+    }
+    if (getClass() != obj.getClass()) {
+        return false;            // different class → not equal
+    }
+    final Empleado other = (Empleado) obj;
+    if (Double.doubleToLongBits(this.sueldo)
+            != Double.doubleToLongBits(other.sueldo)) {
+        return false;
+    }
+    if (!Objects.equals(this.nombre, other.nombre)) {
+        return false;
+    }
+    return true;
+}
+```
+</CodeGroup>
+
+With these overrides in place, two `Empleado` instances with the same `nombre` and `sueldo` will return `true` from `equals` and produce the same `hashCode` — behaving correctly as keys in a `HashMap` or members of a `HashSet`.
+
+<Note>
+  IDEs like IntelliJ IDEA and NetBeans can auto-generate `hashCode` and `equals` for you via **Code → Generate**. The generated code follows the same prime-number pattern shown above. Always review the generated fields to make sure only the semantically meaningful ones are included.
+</Note>
+
+### `toString` — readable object representation
+
+Overriding `toString()` on `Empleado` means that `System.out.println(empleado)` and string concatenation automatically produce a human-friendly string instead of `domain.Empleado@1b6d3586`.
+
+```java title="domain/Empleado.java — toString"
+@Override
+public String toString() {
+    return "Empleado{" + "nombre=" + nombre + ", sueldo=" + sueldo + '}';
+}
+```

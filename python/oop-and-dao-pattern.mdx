@@ -1,0 +1,477 @@
+---
+title: "Python OOP and the DAO Pattern with PostgreSQL"
+sidebarTitle: "DAO Pattern"
+description: "Implement the Data Access Object pattern in Python using three classes — Persona, Conexion, and PersonaDao — to separate database logic from business logic, backed by PostgreSQL via psycopg2."
+---
+
+The **Data Access Object (DAO)** pattern is a structural pattern that cleanly separates your domain objects from the code that reads and writes them to a database. Instead of scattering SQL strings across your application, every database interaction lives in one dedicated class — the DAO — making your code easier to test, maintain, and extend.
+
+In this course's implementation, the pattern is built from three layers:
+
+| Layer | Class | Responsibility |
+|---|---|---|
+| Domain Object | `Persona` | Holds data; no SQL knowledge |
+| Connection Manager | `Conexion` | Singleton connection + cursor |
+| Data Access Object | `PersonaDao` | All CRUD SQL operations |
+
+---
+
+## The `Persona` Class
+
+`Persona` is a plain Python domain object. It stores the four columns that map to the `persona` table and exposes them exclusively through explicit getters and setters — private attributes (name-mangled with `__`) enforce encapsulation.
+
+```python persona.py
+class Persona:
+    def __init__(self, id_persona: int = None, nombre: str = "",
+                 apellido: str = "", email: str = ""):
+        self.__id_persona = id_persona
+        self.__nombre     = nombre
+        self.__apellido   = apellido
+        self.__email      = email
+
+    # Getters
+    def get_id_persona(self) -> int:
+        return self.__id_persona
+
+    def get_nombre(self) -> str:
+        return self.__nombre
+
+    def get_apellido(self) -> str:
+        return self.__apellido
+
+    def get_email(self) -> str:
+        return self.__email
+
+    # Setters
+    def set_id_persona(self, id_persona: int) -> None:
+        self.__id_persona = id_persona
+
+    def set_nombre(self, nombre: str) -> None:
+        self.__nombre = nombre
+
+    def set_apellido(self, apellido: str) -> None:
+        self.__apellido = apellido
+
+    def set_email(self, email: str) -> None:
+        self.__email = email
+
+    # Representación
+    def __str__(self) -> str:
+        return (f"Persona(id={self.__id_persona}, "
+                f"nombre='{self.__nombre}', "
+                f"apellido='{self.__apellido}', "
+                f"email='{self.__email}')")
+```
+
+<Note>
+All attributes use Python's **name-mangling** convention (`__attribute`), making them private to the class. External code must always go through the getter/setter interface — direct attribute access like `persona.__nombre` will raise an `AttributeError`.
+</Note>
+
+The `__str__` method makes every `Persona` instance directly printable, which is useful when logging or debugging a list of records.
+
+---
+
+## The `Conexion` Class
+
+`Conexion` implements a **singleton** connection and cursor. All class-level attributes (database credentials and the live `__conexion`/`__cursor` references) are shared across all callers — there is only ever one open connection for the entire application's lifetime.
+
+Credentials are pulled from environment variables at class definition time via `python-dotenv`, so no credentials ever appear in source code.
+
+<Steps>
+  <Step title="Define class-level credentials">
+    All connection parameters are declared as class attributes and read from the environment using `os.getenv()`. Default values are provided as a fallback.
+  </Step>
+  <Step title="Lazy-initialize the connection">
+    `obtenerConexion()` checks whether `__conexion` is `None` before calling `psycopg2.connect()`. Subsequent calls return the already-open connection immediately.
+  </Step>
+  <Step title="Lazy-initialize the cursor">
+    `obtenerCursor()` follows the same pattern — it calls `obtenerConexion()` internally and creates the cursor only once.
+  </Step>
+  <Step title="Close both on shutdown">
+    `cerrar()` closes the cursor first, then the connection, and resets both class attributes to `None` so a fresh connection can be opened later if needed.
+  </Step>
+</Steps>
+
+```python conexion.py
+import psycopg2
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Conexion:
+    __DATABASE = os.getenv("DATABASE", "mi_db")
+    __USERNAME = os.getenv("USERNAME", "postgres")
+    __PASSWORD = os.getenv("PASSWORD", "")
+    __DB_PORT  = os.getenv("DB_PORT", "5432")
+    __HOST     = os.getenv("HOST", "localhost")
+
+    __conexion = None
+    __cursor   = None
+
+    @classmethod
+    def obtenerConexion(cls):
+        if cls.__conexion is None:
+            cls.__conexion = psycopg2.connect(
+                database = cls.__DATABASE,
+                user     = cls.__USERNAME,
+                password = cls.__PASSWORD,
+                host     = cls.__HOST,
+                port     = cls.__DB_PORT,
+            )
+        return cls.__conexion
+
+    @classmethod
+    def obtenerCursor(cls):
+        if cls.__cursor is None:
+            cls.__cursor = cls.obtenerConexion().cursor()
+        return cls.__cursor
+
+    @classmethod
+    def cerrar(cls):
+        if cls.__cursor is not None:
+            cls.__cursor.close()
+            cls.__cursor = None
+        if cls.__conexion is not None:
+            cls.__conexion.close()
+            cls.__conexion = None
+```
+
+During development you can add logging to each method to trace connection lifecycle events — the Clase 8 version of `Conexion` wraps each `psycopg2` call in `try/except` and logs success or failure with `log.debug()` / `log.error()`.
+
+---
+
+## The `PersonaDao` Class
+
+`PersonaDao` owns all SQL strings as private class constants and exposes four `@classmethod` operations — one for each CRUD verb. No instance of `PersonaDao` is ever created; callers invoke the methods directly on the class.
+
+<Note>
+Using `@classmethod` (rather than instance methods or static methods) gives each method access to the class itself via the `cls` parameter. This means the SQL constants (`cls.__SELECCIONAR`, etc.) are accessible without creating an object, and a subclass could override them if you ever need a specialized DAO.
+</Note>
+
+```python persona_dao.py
+from conexion import Conexion
+from persona import Persona
+
+
+class PersonaDao:
+    # Sentencias SQL
+    __SELECCIONAR = "SELECT id_persona, nombre, apellido, email FROM persona"
+    __INSERTAR    = "INSERT INTO persona (nombre, apellido, email) VALUES (%s, %s, %s)"
+    __ACTUALIZAR  = "UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s"
+    __ELIMINAR    = "DELETE FROM persona WHERE id_persona=%s"
+
+    @classmethod
+    def seleccionar(cls) -> list[Persona]:
+        """Retorna una lista con todos los registros de la tabla persona."""
+        cursor = Conexion.obtenerCursor()
+        cursor.execute(cls.__SELECCIONAR)
+        registros = cursor.fetchall()
+        personas = [
+            Persona(r[0], r[1], r[2], r[3]) for r in registros
+        ]
+        return personas
+
+    @classmethod
+    def insertar(cls, cls_persona: Persona) -> int:
+        """Inserta una nueva persona y retorna el número de filas afectadas."""
+        cursor = Conexion.obtenerCursor()
+        valores = (
+            cls_persona.get_nombre(),
+            cls_persona.get_apellido(),
+            cls_persona.get_email(),
+        )
+        cursor.execute(cls.__INSERTAR, valores)
+        Conexion.obtenerConexion().commit()
+        return cursor.rowcount
+
+    @classmethod
+    def actualizando(cls, cls_persona: Persona) -> int:
+        """Actualiza los datos de una persona y retorna el número de filas afectadas."""
+        cursor = Conexion.obtenerCursor()
+        valores = (
+            cls_persona.get_nombre(),
+            cls_persona.get_apellido(),
+            cls_persona.get_email(),
+            cls_persona.get_id_persona(),
+        )
+        cursor.execute(cls.__ACTUALIZAR, valores)
+        Conexion.obtenerConexion().commit()
+        return cursor.rowcount
+
+    @classmethod
+    def eliminar(cls, ccls_persona: Persona) -> int:
+        """Elimina una persona por su id y retorna el número de filas afectadas."""
+        cursor = Conexion.obtenerCursor()
+        valores = (ccls_persona.get_id_persona(),)
+        cursor.execute(cls.__ELIMINAR, valores)
+        Conexion.obtenerConexion().commit()
+        return cursor.rowcount
+```
+
+### Method reference
+
+<Accordion title="seleccionar() → list[Persona]">
+Executes `SELECT id_persona, nombre, apellido, email FROM persona` with no parameters. Fetches all rows and maps each tuple to a `Persona` object using a list comprehension. Returns an empty list when the table is empty.
+</Accordion>
+
+<Accordion title="insertar(persona: Persona) → int">
+Executes `INSERT INTO persona (nombre, apellido, email) VALUES (%s, %s, %s)` using parameterized values retrieved through the `Persona` getters. Commits the transaction and returns `cursor.rowcount` (typically `1` on success).
+</Accordion>
+
+<Accordion title="actualizando(persona: Persona) → int">
+Executes `UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s`. The tuple order is `(nombre, apellido, email, id_persona)` — the primary key comes **last** because it appears in the `WHERE` clause. Returns the number of rows updated.
+</Accordion>
+
+<Accordion title="eliminar(persona: Persona) → int">
+Executes `DELETE FROM persona WHERE id_persona=%s` using only the `id_persona` field. The `Persona` object passed in can be created with just the ID set: `Persona(id_persona=1)`. Returns the number of rows deleted.
+</Accordion>
+
+---
+
+## Wiring It Together — `main.py`
+
+The entry point imports all three classes and demonstrates a full CRUD cycle in order: insert → select → update → delete → close.
+
+```python main.py
+from conexion import Conexion
+from persona import Persona
+from persona_dao import PersonaDao
+
+# INSERTAR
+nueva_persona = Persona(nombre="Ana", apellido="López", email="ana@mail.com")
+filas = PersonaDao.insertar(nueva_persona)
+print(f"Filas insertadas: {filas}")
+
+# SELECCIONAR
+print("\nTodas las personas:")
+personas = PersonaDao.seleccionar()
+for p in personas:
+    print(p)
+
+# ACTUALIZAR
+editar = Persona(id_persona=1, nombre="Ana", apellido="García", email="ana@mail.com")
+filas = PersonaDao.actualizando(editar)
+print(f"\nFilas actualizadas: {filas}")
+
+# ELIMINAR
+borrar = Persona(id_persona=1)
+filas = PersonaDao.eliminar(borrar)
+print(f"Filas eliminadas: {filas}")
+
+# CERRAR CONEXIÓN
+Conexion.cerrar()
+print("\nConexión cerrada.")
+```
+
+Notice that `main.py` never touches SQL directly — it only works with `Persona` objects and calls methods on `PersonaDao`. That is the entire point of the DAO pattern: **business logic is completely isolated from persistence logic**.
+
+<Tip>
+Because all SQL lives in `PersonaDao`, switching from PostgreSQL to MySQL (or any other database) later only requires changes inside `PersonaDao` and `Conexion` — none of the code in `main.py` or `Persona` needs to change. This is the Open/Closed Principle in practice.
+</Tip>
+
+---
+
+## Using `.env` for Configuration
+
+Hard-coding database credentials in source code is a security risk. The project uses `python-dotenv` to load them from a `.env` file at startup.
+
+<CodeGroup>
+```bash .env
+DATABASE=mi_db
+USERNAME=postgres
+PASSWORD=InsertarContraseña
+HOST=localhost
+DB_PORT=5432
+```
+
+```python loading .env in conexion.py
+import os
+from dotenv import load_dotenv
+
+load_dotenv()  # reads .env from the current working directory
+
+class Conexion:
+    __DATABASE = os.getenv("DATABASE", "mi_db")
+    __USERNAME = os.getenv("USERNAME", "postgres")
+    __PASSWORD = os.getenv("PASSWORD", "")
+    __DB_PORT  = os.getenv("DB_PORT", "5432")
+    __HOST     = os.getenv("HOST", "localhost")
+```
+
+```bash installing python-dotenv
+pip install python-dotenv psycopg2-binary
+```
+</CodeGroup>
+
+<Warning>
+**Never commit your `.env` file to version control.** Add `.env` to your `.gitignore` immediately. If credentials are accidentally pushed to a public repository, rotate them right away — git history is public even after a delete.
+</Warning>
+
+---
+
+## Building the DAO from Scratch
+
+<Steps>
+  <Step title="Install dependencies">
+    Install the required packages for database connectivity and environment variable loading.
+
+    ```bash
+    pip install psycopg2-binary python-dotenv
+    ```
+  </Step>
+
+  <Step title="Create the .env file">
+    Add your PostgreSQL credentials to a `.env` file in your project root. Never commit this file.
+
+    ```bash .env
+    DATABASE=mi_db
+    USERNAME=postgres
+    PASSWORD=InsertarContraseña
+    HOST=localhost
+    DB_PORT=5432
+    ```
+  </Step>
+
+  <Step title="Define the Persona domain class">
+    Create `persona.py` with private attributes and explicit getters/setters. This class has zero knowledge of SQL or databases.
+
+    ```python persona.py
+    class Persona:
+        def __init__(self, id_persona: int = None, nombre: str = "",
+                     apellido: str = "", email: str = ""):
+            self.__id_persona = id_persona
+            self.__nombre     = nombre
+            self.__apellido   = apellido
+            self.__email      = email
+
+        def get_id_persona(self) -> int: return self.__id_persona
+        def get_nombre(self)     -> str: return self.__nombre
+        def get_apellido(self)   -> str: return self.__apellido
+        def get_email(self)      -> str: return self.__email
+
+        def set_id_persona(self, v): self.__id_persona = v
+        def set_nombre(self, v):     self.__nombre = v
+        def set_apellido(self, v):   self.__apellido = v
+        def set_email(self, v):      self.__email = v
+
+        def __str__(self) -> str:
+            return (f"Persona(id={self.__id_persona}, nombre='{self.__nombre}', "
+                    f"apellido='{self.__apellido}', email='{self.__email}')")
+    ```
+  </Step>
+
+  <Step title="Build the Conexion singleton">
+    Create `conexion.py`. The `@classmethod` decorator ensures the same connection instance is reused across all callers.
+
+    ```python conexion.py
+    import psycopg2
+    import os
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    class Conexion:
+        __DATABASE = os.getenv("DATABASE", "mi_db")
+        __USERNAME = os.getenv("USERNAME", "postgres")
+        __PASSWORD = os.getenv("PASSWORD", "")
+        __DB_PORT  = os.getenv("DB_PORT", "5432")
+        __HOST     = os.getenv("HOST", "localhost")
+        __conexion = None
+        __cursor   = None
+
+        @classmethod
+        def obtenerConexion(cls):
+            if cls.__conexion is None:
+                cls.__conexion = psycopg2.connect(
+                    database=cls.__DATABASE, user=cls.__USERNAME,
+                    password=cls.__PASSWORD, host=cls.__HOST, port=cls.__DB_PORT,
+                )
+            return cls.__conexion
+
+        @classmethod
+        def obtenerCursor(cls):
+            if cls.__cursor is None:
+                cls.__cursor = cls.obtenerConexion().cursor()
+            return cls.__cursor
+
+        @classmethod
+        def cerrar(cls):
+            if cls.__cursor:
+                cls.__cursor.close()
+                cls.__cursor = None
+            if cls.__conexion:
+                cls.__conexion.close()
+                cls.__conexion = None
+    ```
+  </Step>
+
+  <Step title="Implement the PersonaDao CRUD methods">
+    Create `persona_dao.py`. Declare all SQL as private class constants and implement each CRUD operation as a `@classmethod`.
+
+    ```python persona_dao.py
+    from conexion import Conexion
+    from persona import Persona
+
+    class PersonaDao:
+        __SELECCIONAR = "SELECT id_persona, nombre, apellido, email FROM persona"
+        __INSERTAR    = "INSERT INTO persona (nombre, apellido, email) VALUES (%s, %s, %s)"
+        __ACTUALIZAR  = "UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s"
+        __ELIMINAR    = "DELETE FROM persona WHERE id_persona=%s"
+
+        @classmethod
+        def seleccionar(cls) -> list[Persona]:
+            cursor = Conexion.obtenerCursor()
+            cursor.execute(cls.__SELECCIONAR)
+            return [Persona(r[0], r[1], r[2], r[3]) for r in cursor.fetchall()]
+
+        @classmethod
+        def insertar(cls, persona: Persona) -> int:
+            cursor = Conexion.obtenerCursor()
+            cursor.execute(cls.__INSERTAR,
+                           (persona.get_nombre(), persona.get_apellido(), persona.get_email()))
+            Conexion.obtenerConexion().commit()
+            return cursor.rowcount
+
+        @classmethod
+        def actualizando(cls, persona: Persona) -> int:
+            cursor = Conexion.obtenerCursor()
+            cursor.execute(cls.__ACTUALIZAR,
+                           (persona.get_nombre(), persona.get_apellido(),
+                            persona.get_email(), persona.get_id_persona()))
+            Conexion.obtenerConexion().commit()
+            return cursor.rowcount
+
+        @classmethod
+        def eliminar(cls, persona: Persona) -> int:
+            cursor = Conexion.obtenerCursor()
+            cursor.execute(cls.__ELIMINAR, (persona.get_id_persona(),))
+            Conexion.obtenerConexion().commit()
+            return cursor.rowcount
+    ```
+  </Step>
+
+  <Step title="Run the full CRUD cycle in main.py">
+    Wire everything together and run a complete insert → select → update → delete flow.
+
+    ```python main.py
+    from conexion import Conexion
+    from persona import Persona
+    from persona_dao import PersonaDao
+
+    nueva_persona = Persona(nombre="Ana", apellido="López", email="ana@mail.com")
+    print(f"Filas insertadas: {PersonaDao.insertar(nueva_persona)}")
+
+    for p in PersonaDao.seleccionar():
+        print(p)
+
+    editar = Persona(id_persona=1, nombre="Ana", apellido="García", email="ana@mail.com")
+    print(f"Filas actualizadas: {PersonaDao.actualizando(editar)}")
+
+    borrar = Persona(id_persona=1)
+    print(f"Filas eliminadas: {PersonaDao.eliminar(borrar)}")
+
+    Conexion.cerrar()
+    ```
+  </Step>
+</Steps>

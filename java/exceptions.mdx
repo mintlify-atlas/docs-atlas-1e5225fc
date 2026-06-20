@@ -1,0 +1,242 @@
+---
+title: "Java Exception Handling: Checked, Unchecked, and Custom Exceptions"
+sidebarTitle: "Exceptions"
+description: "Handle errors in Java with try-catch-finally blocks, create custom exception classes, and distinguish checked exceptions from RuntimeExceptions with real Clase 8 examples."
+---
+
+Exceptions are Java's built-in mechanism for signalling and recovering from errors at runtime. Instead of letting a bad state silently propagate, Java *interrupts* normal flow, hands control to the nearest matching `catch` block, and gives you a full stack trace to diagnose the problem. Mastering exceptions lets you write programs that fail gracefully and remain debuggable.
+
+---
+
+## try-catch: Catching Errors at Runtime
+
+The fundamental construct is the `try-catch` block. Code that might throw goes inside `try`; one or more `catch` clauses handle specific exception types.
+
+```java title="TestExcepciones.java"
+package test;
+
+public class TestExcepciones {
+    public static void main(String[] args) {
+        int resultado = 0;
+        try {
+            resultado = 10 / 0;
+        } catch (Exception e) {
+            System.out.println("Ocurrio un error");
+            e.printStackTrace(System.out); // Pila de excepciones
+        }
+        System.out.println("La variable de resultado tiene como valor: " + resultado);
+    }
+}
+```
+
+Even though `10 / 0` throws an `ArithmeticException`, the `catch` block catches it, prints the stack trace, and execution continues — `resultado` stays `0` instead of crashing the JVM.
+
+<Warning>
+  Catching the generic `Exception` class (as above) is fine for learning, but in production code it can mask unexpected bugs. Prefer catching the most *specific* exception type possible so unrelated errors are not silently swallowed.
+</Warning>
+
+---
+
+## Checked vs Unchecked Exceptions
+
+Java divides exceptions into two families:
+
+| Family | Base class | Compiler enforcement | Must declare with `throws`? |
+|---|---|---|---|
+| **Checked** | `Exception` | Yes — must handle or declare | Yes |
+| **Unchecked** | `RuntimeException` | No — optional | No |
+
+### Checked exception example
+
+`OperacionExcepcion` extends `Exception`, so the compiler forces every caller to either catch it or list it in a `throws` clause.
+
+```java title="OperacionExcepcion.java (checked)"
+package excepciones;
+
+public class OperacionExcepcion extends Exception {
+    public OperacionExcepcion(String mensaje) {
+        super(mensaje);
+    }
+}
+```
+
+```java title="Aritmetica.java (checked)"
+package aritmetica;
+import excepciones.OperacionExcepcion;
+
+public class Aritmetica {
+    public static int division(int numerador, int denominador)
+            throws OperacionExcepcion {
+        if (denominador == 0) {
+            throw new OperacionExcepcion("Division entre cero");
+        }
+        return numerador / denominador;
+    }
+}
+```
+
+```java title="TestExcepciones.java (checked)"
+package test;
+import static aritmetica.Aritmetica.division;
+
+public class TestExcepciones {
+    public static void main(String[] args) {
+        int resultado = 0;
+        try {
+            resultado = division(10, 0);
+        } catch (Exception e) {
+            System.out.println("Ocurrio un error");
+            e.printStackTrace(System.out);
+            System.out.println(e.getMessage()); // "Division entre cero"
+        }
+        System.out.println("La variable de resultado tiene como valor: " + resultado);
+    }
+}
+```
+
+### Unchecked (RuntimeException) example
+
+By changing the parent class to `RuntimeException`, the compiler no longer requires callers to handle the exception — it propagates automatically if not caught.
+
+<CodeGroup>
+
+```java title="OperacionExcepcion.java (unchecked)"
+package excepciones;
+
+public class OperacionExcepcion extends RuntimeException {
+    public OperacionExcepcion(String mensaje) {
+        super(mensaje);
+    }
+}
+```
+
+```java title="Aritmetica.java (unchecked)"
+package aritmetica;
+import excepciones.OperacionExcepcion;
+
+public class Aritmetica {
+    public static int division(int numerador, int denominador) {
+        // No 'throws' declaration needed — it's unchecked
+        if (denominador == 0) {
+            throw new OperacionExcepcion("Division entre cero");
+        }
+        return numerador / denominador;
+    }
+}
+```
+
+```java title="TestExcepciones.java (unchecked)"
+package test;
+import static aritmetica.Aritmetica.division;
+
+public class TestExcepciones {
+    public static void main(String[] args) {
+        int resultado = 0;
+        // No try-catch required — but the program will crash if 0 is passed
+        resultado = division(10, 0);
+        System.out.println("La variable de resultado tiene como valor: " + resultado);
+    }
+}
+```
+
+</CodeGroup>
+
+<Note>
+  Use **checked** exceptions for recoverable conditions you expect callers to handle (e.g., invalid user input, file not found). Use **unchecked** exceptions for programming errors that should never happen in correct code (e.g., null pointer, illegal argument).
+</Note>
+
+---
+
+## Custom Exception Classes
+
+Creating your own exception class gives you meaningful names in stack traces and lets you attach domain-specific information. Follow these steps:
+
+<Steps>
+  <Step title="Extend Exception or RuntimeException">
+    Choose the base class based on whether you want compile-time enforcement (checked) or not (unchecked).
+
+    ```java title="OperacionExcepcion.java"
+    package excepciones;
+
+    // Checked — callers must handle or declare it
+    public class OperacionExcepcion extends Exception {
+        public OperacionExcepcion(String mensaje) {
+            super(mensaje); // passes the message to Exception
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Throw the exception with throw">
+    Use the `throw` keyword (singular) inside the method body where the bad condition is detected.
+
+    ```java title="Aritmetica.java"
+    if (denominador == 0) {
+        throw new OperacionExcepcion("Division entre cero");
+    }
+    ```
+  </Step>
+
+  <Step title="Declare it with throws">
+    If your exception is checked, add `throws OperacionExcepcion` to the method signature so the compiler knows about it.
+
+    ```java title="Aritmetica.java"
+    public static int division(int numerador, int denominador)
+            throws OperacionExcepcion {
+        // ...
+    }
+    ```
+  </Step>
+
+  <Step title="Catch it with a specific catch clause">
+    Always list the most specific exception type first. Retrieve the message with `e.getMessage()`.
+
+    ```java title="TestExcepciones.java"
+    try {
+        resultado = division(10, 0);
+    } catch (OperacionExcepcion e) {
+        System.out.println("Ocurrio un error de tipo OperacionExcepcion");
+        System.out.println(e.getMessage()); // "Division entre cero"
+    } catch (Exception e) {
+        System.out.println("Ocurrio un error inesperado");
+        e.printStackTrace(System.out);
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## The finally Block
+
+A `finally` block runs **no matter what** — whether an exception was thrown, caught, or never happened at all. Use it to release resources such as database connections, file handles, or scanners.
+
+```java title="TestExcepciones.java — with finally"
+package test;
+import static aritmetica.Aritmetica.division;
+
+public class TestExcepciones {
+    public static void main(String[] args) {
+        int resultado = 0;
+        try {
+            resultado = division(10, 0);
+        } catch (OperacionExcepcion e) {
+            System.out.println("Ocurrio un error de tipo OperacionExcepcion");
+            System.out.println(e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Ocurrio un error");
+            e.printStackTrace(System.out);
+            System.out.println(e.getMessage());
+        } finally {
+            // Always executes — ideal for cleanup
+            System.out.println("Se reviso la division entre cero");
+        }
+        System.out.println("La variable de resultado tiene como valor: " + resultado);
+    }
+}
+```
+
+Key behaviours of `finally`:
+- Executes even when an exception is **not** caught and propagates up the call stack.
+- Executes even when the `try` block contains a `return` statement.
+- Is the right place to close `Scanner`, `Connection`, or any `Closeable` resource (or use try-with-resources for automatic closure).

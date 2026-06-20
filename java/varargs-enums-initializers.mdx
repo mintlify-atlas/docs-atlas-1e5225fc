@@ -1,0 +1,336 @@
+---
+title: "Varargs, Enumerations, and Initialization Blocks in Java"
+sidebarTitle: "Varargs & Enums"
+description: "Explore Java varargs for variable-length arguments, enum declarations with attributes, and static and instance initialization blocks, from Clase 2 exercises."
+---
+
+Varargs, enumerations, and initialization blocks are three features that go beyond basic field declarations and constructors, each giving you more control over **how a class and its members are configured**. Varargs let a method accept any number of arguments without forcing the caller to build an array. Enumerations replace fragile magic strings or integer constants with type-safe named values — and they can carry their own data. Initialization blocks let you run setup logic **before** a constructor executes, with a strict and predictable order of execution that is worth understanding deeply. Together these patterns make class designs cleaner, safer, and easier to extend.
+
+---
+
+## Varargs — Variable-Length Arguments
+
+Normally a method that needs to receive several integers requires either multiple parameters (`int a, int b, int c, ...`) or an explicit array. **Varargs** let you declare a single `Type... paramName` parameter that Java automatically packs into an array inside the method body.
+
+### Syntax
+
+```java
+accessModifier returnType methodName(Type... parameterName) { ... }
+```
+
+- The `...` notation must appear **between the type and the parameter name**.
+- Varargs must be the **last parameter** in the signature.
+- Inside the method, `parameterName` behaves exactly like an array.
+
+### Basic Example — `imprimirNumeros`
+
+```java title="TestArgumentosVariables.java (Parte 1)"
+package test;
+
+public class TestArgumentosVariables {
+    public static void main(String[] args) {
+        // No array needed — pass values directly
+    }
+
+    private static void imprimirNumeros(int... numeros) {
+        for (int i = 0; i < numeros.length; i++) {
+            System.out.println("Elementos: " + numeros[i]);
+        }
+    }
+}
+```
+
+### Combining Fixed and Vararg Parameters
+
+You can mix fixed parameters with a vararg **as long as the vararg comes last**. The method below takes a `nombre` and `apellido` as fixed `String` parameters and then delegates the numbers to `imprimirNumeros`.
+
+```java title="TestArgumentosVariables.java (Parte 2)"
+package test;
+
+public class TestArgumentosVariables {
+    public static void main(String[] args) {
+        imprimirNumeros(3, 4, 5);
+        imprimirNumeros(1, 2);
+        variosParametros("Ernesto", "Malcorra", 7, 8, 9);
+    }
+
+    private static void variosParametros(String nombre, String apellido, int... numeros) {
+        System.out.println("Nombre: "   + nombre);
+        System.out.println("Apellido: " + apellido);
+        imprimirNumeros(numeros);   // pass the int[] directly
+    }
+
+    private static void imprimirNumeros(int... numeros) {
+        for (int i = 0; i < numeros.length; i++) {
+            System.out.println("Elementos: " + numeros[i]);
+        }
+    }
+}
+```
+
+**What happens at each call:**
+
+| Call | `numeros` array inside the method |
+|------|-----------------------------------|
+| `imprimirNumeros(3, 4, 5)` | `[3, 4, 5]` |
+| `imprimirNumeros(1, 2)` | `[1, 2]` |
+| `variosParametros("Ernesto", "Malcorra", 7, 8, 9)` | fixed params captured; `numeros = [7, 8, 9]` |
+
+<Tip>
+  Because a vararg parameter **is** an array, you can also pass an existing `int[]` directly, as `variosParametros` does when it calls `imprimirNumeros(numeros)`.
+</Tip>
+
+---
+
+## Enumerations (`enum`)
+
+An `enum` is a special class type whose instances are a fixed set of named constants. Using an `enum` instead of raw strings or integer codes gives you **compile-time type safety** — the compiler rejects any value that is not one of the declared constants.
+
+### Simple Enum
+
+The simplest form lists constants with no extra data:
+
+```java title="Dias.java"
+package enumeraciones;
+
+public enum Dias {
+    LUNES,
+    MARTES,
+    MIERCOLES,
+    JUEVES,
+    VIERNES,
+    SABADO,
+    DOMINGO
+}
+```
+
+You can use an enum constant in a `switch` statement, which produces clean and readable branching logic:
+
+```java title="TestEnumeraciones.java"
+package test;
+
+import enumeraciones.Dias;
+
+public class TestEnumeraciones {
+    public static void main(String[] args) {
+        System.out.println("Dia 1: " + Dias.LUNES);
+        indicarDiaSemana(Dias.LUNES);
+    }
+
+    private static void indicarDiaSemana(Dias dias) {
+        switch (dias) {
+            case LUNES:
+                System.out.println("Primer día de la semana");
+                break;
+            case MARTES:
+                System.out.println("Segundo día de la semana");
+                break;
+            case MIERCOLES:
+                System.out.println("Tercer día de la semana");
+                break;
+            case JUEVES:
+                System.out.println("Cuarto día de la semana");
+                break;
+            case VIERNES:
+                System.out.println("Quinto día de la semana");
+                break;
+            case SABADO:
+                System.out.println("Sexto día de la semana");
+                break;
+            case DOMINGO:
+                System.out.println("Séptimo día de la semana");
+                break;
+            default:
+                System.out.println("Día no válido");
+                break;
+        }
+    }
+}
+```
+
+### Enums with Attributes — `Continentes`
+
+An `enum` can have **fields, a constructor, and methods** just like a regular class. Each constant passes arguments to the constructor in parentheses. This turns an enum into a small, self-contained data object.
+
+<CodeGroup>
+
+```java title="Continentes.java (enum definition)"
+package enumeraciones;
+
+public enum Continentes {
+    AFRICA  (53, "1.2 billones"),
+    EUROPA  (46, "1.1 billones"),
+    ASIA    (44, "1.9 billones"),
+    AMERICA (34, "150.2 billones"),
+    OCEANIA (14, "1.2 billones");
+
+    // Fields — each constant gets its own copy
+    private final int paises;
+    private String habitantes;
+
+    // Constructor — called once per constant at class load time
+    Continentes(int paises, String habitantes) {
+        this.paises     = paises;
+        this.habitantes = habitantes;
+    }
+
+    // Getters
+    public int    getPaises()      { return paises; }
+    public String getHabitantes()  { return habitantes; }
+}
+```
+
+```java title="TestEnumeraciones.java (using Continentes)"
+package test;
+
+public class TestEnumeraciones {
+    public static void main(String[] args) {
+        System.out.println("Continente No. 1: " + Continentes.AFRICA);
+        System.out.println("No. de paises: "
+                + Continentes.AFRICA.getPaises());
+        System.out.println("No. de habitantes: "
+                + Continentes.AFRICA.getHabitantes());
+
+        System.out.println("Continente No. 2: " + Continentes.EUROPA);
+        System.out.println("No. de paises: "
+                + Continentes.EUROPA.getPaises());
+        System.out.println("No. de habitantes: "
+                + Continentes.EUROPA.getHabitantes());
+
+        System.out.println("Continente No. 3: " + Continentes.ASIA);
+        System.out.println("No. de paises: "
+                + Continentes.ASIA.getPaises());
+
+        System.out.println("Continente No. 4: " + Continentes.AMERICA);
+        System.out.println("No. de paises: "
+                + Continentes.AMERICA.getPaises());
+
+        System.out.println("Continente No. 5: " + Continentes.OCEANIA);
+        System.out.println("No. de paises: "
+                + Continentes.OCEANIA.getPaises());
+    }
+}
+```
+
+</CodeGroup>
+
+**How enum constructors differ from class constructors:**
+
+| Aspect | Regular class | Enum |
+|--------|--------------|------|
+| Constructor visibility | Any modifier | Implicitly `private` — cannot be `public` |
+| When called | Each `new ClassName(...)` call | Once per constant at class-load time |
+| Number of instances | Unlimited | Fixed — exactly the declared constants |
+
+<Note>
+  Prefer enums over `public static final` constants whenever the set of valid values is **known and closed** (days of the week, continents, HTTP methods, etc.). Enums are type-safe, support `switch`, and can carry behaviour — things plain constants cannot.
+</Note>
+
+---
+
+## Initialization Blocks
+
+Java allows you to write blocks of code **outside any method** that run automatically when a class is loaded or when a new instance is created. These are called **initialization blocks** and come in two flavours.
+
+### Static Initialization Block
+
+A `static { ... }` block runs **once**, when the JVM first loads the class — before any constructor is called. It is the right place for setup that depends on no particular instance.
+
+```java title="Persona.java — static block only"
+package domain;
+
+public class Persona {
+    private final int idPersona;
+    private static int contadorPersonas;
+
+    static { // Static initialization block
+        System.out.println("Ejecucion del bloque estatico");
+        ++Persona.contadorPersonas;
+        // this.idPersona = 10;  // ❌ Error — 'this' does not exist in a static context
+    }
+}
+```
+
+<Note>
+  Because a `static` block has no `this` reference, you **cannot** assign instance fields there. Attempting it causes a compile error, as the comment in the source shows.
+</Note>
+
+### Instance (Non-Static) Initialization Block
+
+A non-static `{ ... }` block (no keyword prefix) runs **every time a new object is created**, right before the constructor body executes.
+
+```java title="Persona.java — static + instance block + constructor"
+package domain;
+
+public class Persona {
+    private final int idPersona;
+    private static int contadorPersonas;
+
+    // ① Runs once when the class is loaded
+    static {
+        System.out.println("Ejecucion del bloque estatico");
+        ++Persona.contadorPersonas;
+    }
+
+    // ② Runs every time a new Persona is created (before the constructor)
+    {
+        System.out.println("Ejecucion del bloque NO estatico");
+        this.idPersona = Persona.contadorPersonas++;
+    }
+
+    // ③ Runs after the instance block
+    public Persona() {
+        System.out.println("Ejecucion del constructor");
+    }
+
+    public int getIdPersona() {
+        return this.idPersona;
+    }
+}
+```
+
+### Order of Execution
+
+```java title="TestBloqueInicializacion.java"
+package test;
+
+import domain.Persona;
+
+public class TestBloqueInicializacion {
+    public static void main(String[] args) {
+        Persona persona1 = new Persona();
+        System.out.println("persona1 = " + persona1);
+
+        Persona persona2 = new Persona();
+        System.out.println("persona2 = " + persona2);
+    }
+}
+```
+
+**Output:**
+
+```
+Ejecucion del bloque estatico        ← once, on class load
+Ejecucion del bloque NO estatico     ← persona1 instance block
+Ejecucion del constructor            ← persona1 constructor
+persona1 = ...
+Ejecucion del bloque NO estatico     ← persona2 instance block
+Ejecucion del constructor            ← persona2 constructor
+persona2 = ...
+```
+
+<Accordion title="Execution order summary">
+
+| Order | What runs | How many times |
+|-------|-----------|----------------|
+| 1st | `static { }` block | **Once** — when the class is first loaded |
+| 2nd | `{ }` instance block | **Each** time a new object is created |
+| 3rd | Constructor body | **Each** time a new object is created |
+
+The static block ran only once even though two `Persona` objects were created. The instance block and constructor ran twice — once per object.
+
+</Accordion>
+
+<Tip>
+  In most modern code, static and instance initialization blocks are rarely needed. For simple cases, initialise static variables directly in their declaration (`private static int contador = 0;`). For complex instance setup, move the logic into a private method and call it from the constructor — this is more readable and easier to test.
+</Tip>

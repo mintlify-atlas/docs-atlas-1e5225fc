@@ -1,0 +1,109 @@
+---
+title: "Print-Estoy-Cansado-Jefe: Third-Semester OOP Course Guide"
+sidebarTitle: "Introduction"
+description: "An overview of the third-semester OOP programming course covering Java, Python, and JavaScript with 10 student contributors and hands-on projects."
+---
+
+Welcome to the **Print-Estoy-Cansado-Jefe** documentation site — the companion guide to the third-semester university programming course repository of the same name. This course takes students through the fundamentals of Object-Oriented Programming (OOP) in three languages simultaneously: **Java**, **Python**, and **JavaScript**. Rather than studying OOP in isolation, each language section reinforces the same core ideas — classes, inheritance, polymorphism, encapsulation, and abstraction — from a different angle, giving students a well-rounded understanding of how these concepts appear in the real world across different ecosystems.
+
+The course also extends beyond pure OOP, touching on practical areas like database access with PostgreSQL, file I/O, error and exception handling, design patterns (DAO), logging, connection pooling, and even browser-based interactive games. By the end, students are comfortable reading and writing code in all three languages and can recognize shared patterns regardless of syntax.
+
+---
+
+## The Team
+
+This repository is a collaborative effort by **10 student contributors**:
+
+- Albornoz Gian Franco
+- Arreceygor Fabio
+- Bruna Roy
+- Cisterna Abril
+- Fernández Franco
+- Fernández Valentín
+- Platero Martin
+- Ponzina Lautaro
+- Nicolás Veloz
+- Sat Emir
+
+---
+
+## Languages and Why They Were Chosen
+
+The three languages in this course were selected deliberately to highlight both the universality of OOP principles and the real-world diversity of their application:
+
+- **Java** — A statically-typed, class-based language that makes OOP explicit and structured. Java's strict type system and verbose syntax make inheritance hierarchies, abstract classes, interfaces, and access modifiers highly visible, making it an ideal first language for understanding OOP formally.
+
+- **Python** — A dynamically-typed language that proves OOP is a mindset, not just a syntax. The Python section pairs OOP concepts with practical backend skills: file I/O, exception handling, and direct database access via `psycopg2`, the DAO pattern, logging, and connection pooling with PostgreSQL.
+
+- **JavaScript** — A prototype-based, multi-paradigm language that runs in the browser and in Node.js environments. The JavaScript section bridges OOP theory with interactive application development, covering arrow functions, callbacks, timers, and culminating in fully functional browser games and UI projects.
+
+---
+
+## Explore the Course Sections
+
+<CardGroup cols={2}>
+  <Card
+    title="Java: Inheritance & Classes"
+    icon="coffee"
+    href="/java/inheritance-and-classes"
+  >
+    Start with the Java OOP fundamentals — parent and child classes, access modifiers, enums, varargs, overriding, and more across 10 lecture classes.
+  </Card>
+  <Card
+    title="Python: Exception Handling"
+    icon="snake"
+    href="/python/exception-handling"
+  >
+    Dive into Python's approach to exceptions — try/except blocks, custom exception classes, else and finally clauses, and robust error management patterns.
+  </Card>
+  <Card
+    title="JavaScript: OOP & Prototypes"
+    icon="js"
+    href="/javascript/oop-and-prototypes"
+  >
+    Explore OOP in JavaScript through classes, strict mode, polymorphism, `instanceof`, and real-world game projects built with browser APIs.
+  </Card>
+  <Card
+    title="Database Access: psycopg2 Basics"
+    icon="database"
+    href="/python/psycopg2-basics"
+  >
+    Learn to connect Python applications to PostgreSQL using `psycopg2`, execute queries, manage transactions, implement the DAO pattern, and use connection pooling.
+  </Card>
+</CardGroup>
+
+---
+
+## Learning Progression
+
+The course is designed so that each section builds on the previous one. Here is the recommended reading and study order:
+
+<Steps>
+  <Step title="Java OOP Foundations (Classes 1–5)">
+    Begin with Java Classes 1 through 5. You will build a mental model of OOP by creating class hierarchies from scratch — starting with parent/child relationships (Class 1), then adding enums and varargs (Class 2), mastering access modifiers and method overriding (Class 3), exploring polymorphism (Class 4), and understanding casting, the `Object` class, and abstract classes (Class 5).
+  </Step>
+  <Step title="Java Interfaces, JavaBeans, and Exceptions (Classes 6–9)">
+    Continue with Java Classes 6 through 9, where you will work with interfaces, JavaBeans conventions, and Java's exception handling system — concepts that directly parallel what you will see in Python.
+  </Step>
+  <Step title="Python Exceptions and File I/O (Classes 1–3)">
+    Transition to Python. The first three Python lesson sets reinforce exception handling — now in a dynamically-typed context — and introduce file reading and writing. Spotting the parallels with Java's try/catch will deepen your understanding of both.
+  </Step>
+  <Step title="Python Database Access and DAO Pattern (Classes 4–8)">
+    Move into database-connected Python applications. You will use `psycopg2` to communicate with PostgreSQL, write queries, handle transactions, and structure your code using the Data Access Object (DAO) pattern. UML diagrams (`.uxf` files) accompany these lessons.
+  </Step>
+  <Step title="Python Logging and Connection Pooling (Classes 7–9)">
+    Round out the Python section with logging best practices and connection pool management — skills critical for production-ready applications.
+  </Step>
+  <Step title="JavaScript OOP and Projects (Classes 1–6 + Game Area)">
+    Finally, apply everything you know to JavaScript. The lesson classes cover OOP in JS, strict mode, arrow functions, callbacks, and timers. The Games Area (`Area Juegos - Clase 1`) is where theory meets practice: N-Queens, Towers of Hanoi, Rock-Paper-Scissors, Knight's Tour, an avatar game, a live clock, and a login form UI.
+  </Step>
+  <Step title="Java Console Application Capstone (Class 10)">
+    Return to Java for Class 10, which brings together the entire course in a fully working console application — from UML design to implementation — using everything covered across the previous nine classes.
+  </Step>
+</Steps>
+
+---
+
+<Note>
+  **Tip:** This documentation is best used alongside the actual source code. Open the corresponding folder in the repository as you read each section — the file names include both a number (matching the lecture video segment) and a descriptive title, making it easy to follow along file by file. For example, `1.1 Creamos la clase padre DispositivoEntrada.java` is the first file of Java Class 1, matching video segment 1.1.
+</Note>

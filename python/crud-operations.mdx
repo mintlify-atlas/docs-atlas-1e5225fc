@@ -1,0 +1,246 @@
+---
+title: "CRUD Operations on PostgreSQL with psycopg2"
+sidebarTitle: "CRUD Operations"
+description: "Perform INSERT, UPDATE, DELETE, and SELECT operations on PostgreSQL using psycopg2 parameterized queries, commit transactions, and check rowcount for affected rows — from Clase 5."
+---
+
+The four fundamental database operations — **Create, Read, Update, Delete** (CRUD) — map directly to the SQL statements `INSERT`, `SELECT`, `UPDATE`, and `DELETE`. psycopg2 lets you run all of them through the same `cursor.execute()` interface.
+
+A key safety rule: always use **parameterized queries** (placeholders written as `%s`) instead of string interpolation. psycopg2 escapes the values for you, which completely prevents SQL injection attacks.
+
+<Warning>
+  After every `INSERT`, `UPDATE`, or `DELETE` you **must** call
+  `conexion.commit()` (or rely on the `with conexion:` context manager to do it
+  automatically). If you skip the commit, the transaction is left open and your
+  changes will be silently discarded when the connection closes.
+</Warning>
+
+---
+
+## SELECT — Reading Records
+
+SELECT queries do not modify data and do not require a commit. Use `fetchall()` to retrieve multiple rows or `fetchone()` for a single row. See [psycopg2 Basics](/python/psycopg2-basics) for a full walkthrough; here is a quick recap:
+
+```python title="select_all.py"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'SELECT * FROM persona WHERE id_persona IN (1, 2)'
+            cursor.execute(sentencia)
+            registros = cursor.fetchall()   # Returns a list of tuples
+            for registro in registros:
+                print(registro)
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+---
+
+## INSERT — Creating Records
+
+### Insert One Record
+
+Pass the SQL template and a tuple of values to `cursor.execute()`. The `with conexion:` block automatically commits on success and rolls back on exception:
+
+```python title="insert_one.py"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = "INSERT INTO persona (nombre, apellido, email) VALUES (%s, %s, %s)"
+            valores = ("Carlos", "Lara", "clara@gmail.com")   # tuple of values
+            cursor.execute(sentencia, valores)
+            # conexion.commit() — handled automatically by the with block
+except Exception as e:
+    print(f"Ocurrió un error: {e}")
+finally:
+    conexion.close()
+```
+
+### Insert Multiple Records
+
+Use `cursor.executemany()` to insert a collection of rows in a single call. After it finishes, `cursor.rowcount` tells you how many rows were inserted:
+
+```python title="insert_many.py"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'INSERT INTO persona (nombre, apellido, email) VALUES (%s, %s, %s)'
+            valores = (
+                ('Laura',  'Barros',    'Lbarros@mail.com'),
+                ('Marcos', 'Veloz',     'Mveloz@mail.com'),
+                ('Merlin', 'Carracedo', 'Mcarracedo@mail.com'),
+            )
+            cursor.executemany(sentencia, valores)
+            registros_insertados = cursor.rowcount
+            print(f'Los registros insertados son: {registros_insertados}')
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+---
+
+## UPDATE — Modifying Records
+
+### Update One Record
+
+Include a `WHERE` clause with a primary-key placeholder to target a specific row. `cursor.rowcount` returns the number of affected rows:
+
+```python title="update_one.py"
+import psycopg2  # Esto es para poder conectarnos a PostgreSQL
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s'
+            valores = ('Juan Carlos', 'Roldan', 'rcarlos@mail.com', 1)   # tuple
+            cursor.execute(sentencia, valores)
+            registros_actualizados = cursor.rowcount
+            print(f'Los registros actualizados son: {registros_actualizados}')
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+### Update Multiple Records
+
+Pass a tuple of tuples to `cursor.executemany()` to update several rows at once:
+
+```python title="update_many.py"
+import psycopg2  # Esto es para poder conectarnos a Postgre
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s'
+            valores = (
+                ('Juan',   'Perez', 'jperez@mail.com', 4),
+                ('Romina', 'Ayala', 'ayala@mail.com',  5),
+            )   # tuple of tuples
+            cursor.executemany(sentencia, valores)
+            registros_actualizados = cursor.rowcount
+            print(f'Los registros actualizados son: {registros_actualizados}')
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+---
+
+## DELETE — Removing Records
+
+### Delete One Record
+
+Target a single row with a primary-key placeholder:
+
+```python title="delete_one.py"
+import psycopg2  # Esto es para poder conectarnos a Postgre
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'DELETE FROM persona WHERE id_persona=%s'
+            entrada = input('Digite el número de registro a eliminar: ')
+            valores = (7,)   # tuple of values
+            cursor.execute(sentencia, valores)
+            registros_eliminados = cursor.rowcount
+            print(f'Los registros eliminados son: {registros_eliminados}')
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+### Delete Multiple Records
+
+Use an `IN` clause with a tuple of primary keys to remove several rows in one query:
+
+```python title="delete_many.py"
+import psycopg2  # Esto es para poder conectarnos a Postgre
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'DELETE FROM persona WHERE id_persona IN %s'
+            entrada = input('Digite los números de registro a eliminar (separados por coma): ')
+            valores = (tuple(entrada.split(',')),)   # tuple of tuples
+            cursor.execute(sentencia, valores)
+            registros_eliminados = cursor.rowcount
+            print(f'Los registros eliminados son: {registros_eliminados}')
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+---
+
+## Quick Reference
+
+| Method | SQL Operation | Rows at a time | Requires commit? |
+|---|---|---|---|
+| `cursor.execute()` | SELECT / INSERT / UPDATE / DELETE | One statement | No (SELECT) / Yes (writes) |
+| `cursor.executemany()` | INSERT / UPDATE / DELETE | Many rows via iteration | Yes |
+| `cursor.fetchone()` | SELECT | Returns 1 tuple | No |
+| `cursor.fetchall()` | SELECT | Returns all tuples | No |
+| `cursor.rowcount` | Any write | — | — (read after execute) |

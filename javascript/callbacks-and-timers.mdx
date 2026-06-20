@@ -1,0 +1,245 @@
+---
+title: "Callbacks, setTimeout, and setInterval in JavaScript"
+sidebarTitle: "Callbacks & Timers"
+description: "Understand how JavaScript callback functions work, schedule delayed execution with setTimeout, run repeated tasks with setInterval, and cancel scheduled calls — with a live clock project as a real-world example."
+---
+
+JavaScript runs on a **single-threaded event loop** — it can only execute one piece of code at a time. Instead of blocking while waiting for a network request to finish or a timer to expire, JS hands that work to the browser (or Node.js runtime) and supplies a **callback function** to be called once the work is done. This non-blocking, callback-driven model is the foundation of all async JavaScript, from timers to fetch requests to DOM events.
+
+---
+
+## Callback Functions
+
+A **callback** is simply a function that is passed as an argument to another function and invoked (called back) at some later point — either synchronously or asynchronously.
+
+```javascript 6.1-funcionesCallback.js — basic synchronous callback
+// Two plain functions called in order
+function miFuncion1() {
+    console.log('Función 1');
+}
+
+function miFuncion2() {
+    console.log('Función 2');
+}
+
+miFuncion1();
+miFuncion2();
+
+// A named function expression used as a callback
+let impr = function imprimir(mensaje) {
+    console.log(mensaje);
+}
+
+// sumar() does the math, then delegates output to whatever callback is passed
+function sumar(op1, op2, funcionCallback) {
+    let resultado = op1 + op2;
+    funcionCallback(`El resultado es: ${resultado}`);
+}
+
+// Pass impr as the callback — it will be called with the result string
+sumar(5, 3, impr);
+// → El resultado es: 8
+```
+
+Key observations:
+- `impr` is passed **without parentheses** — you pass the function reference, not its return value.
+- `sumar` controls *when* the callback fires; the caller decides *what* happens with the result.
+
+---
+
+## `setTimeout` — Schedule a One-Time Callback
+
+`setTimeout(callback, delay)` asks the runtime to invoke `callback` once, after at least `delay` milliseconds. The function returns a numeric **timer ID** you can use to cancel it before it fires.
+
+```javascript 6.2 Función setTimeout.js
+// Named function passed by reference
+function miFuncionCallback() {
+    console.log('Saludo asincrono después de 3 segundos');
+}
+
+setTimeout(miFuncionCallback, 5000);  // fires after 5 000 ms
+
+// Anonymous function expression inline
+setTimeout(function() {
+    console.log('Saludo asincrono 2');
+}, 3000);                             // fires after 3 000 ms
+
+// Arrow function — the most concise form
+setTimeout(() => console.log('Saludos Asincrono 3'), 4000); // fires after 4 000 ms
+```
+
+<Note>
+  The three calls above are queued concurrently. Output order in the console will be:
+  1. `Saludo asincrono 2` (3 000 ms)
+  2. `Saludos Asincrono 3` (4 000 ms)
+  3. `Saludo asincrono después de 3 segundos` (5 000 ms)
+</Note>
+
+---
+
+## `setInterval` — Repeat a Callback Every N Milliseconds
+
+`setInterval(callback, interval)` schedules `callback` to run **repeatedly** every `interval` milliseconds until explicitly cancelled. Like `setTimeout`, it returns a timer ID.
+
+```javascript 6.4 Funcion setInterval.js — simple clock in the console
+let reloj = () => {
+    let fecha = new Date();
+    console.log(`${fecha.getHours()}:${fecha.getMinutes()}:${fecha.getSeconds()}`);
+}
+
+setInterval(reloj, 1000); // prints the current time every second
+```
+
+<Note>
+  `setInterval` does not guarantee an **exact** interval. If the callback itself takes longer than `interval` milliseconds to run, or the call stack is busy, subsequent calls will be delayed. For high-precision timing consider `requestAnimationFrame` (in browsers) or a drift-correcting pattern.
+</Note>
+
+---
+
+## Clearing Timers
+
+Both timer functions return an integer ID. Pass that ID to the corresponding clear function to cancel a pending call.
+
+```javascript clearing timers
+// --- setTimeout ---
+const timeoutId = setTimeout(() => {
+    console.log('This will never run');
+}, 5000);
+
+clearTimeout(timeoutId); // cancel before 5 s elapse → callback never fires
+
+// --- setInterval ---
+let contador = 0;
+const intervalId = setInterval(() => {
+    contador++;
+    console.log(`tick ${contador}`);
+
+    if (contador >= 5) {
+        clearInterval(intervalId); // stop after 5 ticks
+        console.log('Intervalo detenido');
+    }
+}, 1000);
+```
+
+<Tip>
+  Always store the timer ID in a variable with a scope broad enough to reach the `clear*` call. In browser-based apps, call `clearInterval` when the user navigates away or when the component that owns the timer is removed from the DOM, to avoid memory leaks and ghost callbacks.
+</Tip>
+
+---
+
+## Real Project: Building a Live Clock with `setInterval`
+
+The **Tarea Especial — Reloj** project puts everything together: `setInterval` drives a clock that updates the displayed time and date every second, while a background rotation feature responds to button clicks.
+
+<Steps>
+  <Step title="Set up the background rotation array">
+    An array of Unsplash image URLs stores the available backgrounds. A button cycles through them by incrementing an index, wrapping back to 0 when the end is reached.
+
+    ```javascript reloj.js — background rotation
+    const fondos = [
+        "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?q=80&w=2070", // Mañana
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=2070", // Paisaje
+        "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=2044", // Ciudad Noche
+        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072", // Espacial/Tech
+        "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070"     // Retro/Setup
+    ];
+
+    let indiceFondo = 0;
+
+    // Set the initial background
+    document.body.style.backgroundImage = `url('${fondos[indiceFondo]}')`;
+
+    const btn = document.getElementById('btn-fondo');
+
+    btn.addEventListener('click', () => {
+        indiceFondo++;
+
+        // Wrap back to the first background when the array ends
+        if (indiceFondo >= fondos.length) {
+            indiceFondo = 0;
+        }
+
+        document.body.style.backgroundImage = `url('${fondos[indiceFondo]}')`;
+    });
+    ```
+  </Step>
+
+  <Step title="Write the clock update function">
+    `actualizarReloj` reads the current time from `new Date()`, formats each part with `padStart(2, '0')` to always show two digits, and writes the results into the DOM.
+
+    The date is formatted in Spanish using `toLocaleDateString('es-ES', options)` with a rich `options` object that includes the weekday, year, month, and day names.
+
+    ```javascript reloj.js — actualizarReloj
+    function actualizarReloj() {
+        const ahora = new Date();
+
+        // --- LÓGICA DE RELOJ ---
+        let h = String(ahora.getHours()).padStart(2, '0');
+        let m = String(ahora.getMinutes()).padStart(2, '0');
+        let s = String(ahora.getSeconds()).padStart(2, '0');
+        document.getElementById('reloj').textContent = `${h}:${m}:${s}`;
+
+        // --- LÓGICA DE LA FECHA ---
+        const opciones = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        };
+        let fechaActual = ahora.toLocaleDateString('es-ES', opciones);
+        document.getElementById('fecha').textContent = fechaActual;
+
+        // --- MODIFICADOR DE FONDOS ---
+        actualizarFondo(ahora.getHours()); // passes current hour for time-of-day theming
+    }
+    ```
+  </Step>
+
+  <Step title="Drive the clock with setInterval">
+    `setInterval(actualizarReloj, 1000)` ensures the clock refreshes every second. The first call happens immediately so there is no blank one-second gap on page load.
+
+    ```javascript reloj.js — starting the clock
+    setInterval(actualizarReloj, 1000); // schedule repeating tick
+
+    actualizarReloj(); // call once immediately to populate the display right away
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  Calling the function once **before** `setInterval` (as the clock project does with `actualizarReloj()`) eliminates the initial one-second blank state. Without it the display stays empty until the first tick fires.
+</Tip>
+
+<Warning>
+  `setInterval` accumulates **drift** over time because it schedules ticks relative to when the previous call completed, not the original start time. For a user-facing clock this is acceptable (the displayed time is always read from `new Date()`, which is always accurate), but for animation or music-synced tasks prefer `requestAnimationFrame` or a self-correcting `setTimeout` loop.
+</Warning>
+
+---
+
+## Putting It All Together
+
+Here is a minimal self-contained recap combining callbacks, `setTimeout`, and `setInterval` in one file:
+
+```javascript combined example
+// 1. Synchronous callback
+function sumar(op1, op2, cb) {
+    cb(`Resultado: ${op1 + op2}`);
+}
+sumar(10, 20, (msg) => console.log(msg)); // → Resultado: 30
+
+// 2. Delayed one-time execution
+const idTimeout = setTimeout(() => {
+    console.log('Ejecutado una vez después de 2 s');
+}, 2000);
+
+// 3. Repeating execution — stop after 5 ticks
+let ticks = 0;
+const idInterval = setInterval(() => {
+    ticks++;
+    console.log(`tick ${ticks}`);
+    if (ticks >= 5) clearInterval(idInterval);
+}, 1000);
+
+// 4. Cancel the timeout if conditions change
+// clearTimeout(idTimeout);
+```

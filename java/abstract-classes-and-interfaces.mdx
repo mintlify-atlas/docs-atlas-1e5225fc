@@ -1,0 +1,226 @@
+---
+title: "Abstract Classes and Interfaces for Java OOP Design"
+sidebarTitle: "Abstracts & Interfaces"
+description: "Understand when to use abstract classes versus interfaces in Java, implement the IAccesoDatos CRUD interface, and define abstract methods like FiguraGeometrica.dibujar()."
+---
+
+One of the most consequential design decisions in any Java project is choosing between an **abstract class** and an **interface**. Both tools let you define a contract that subclasses or implementing classes must fulfil, but they do so for different reasons and with different trade-offs. Abstract classes model shared identity — a `FiguraGeometrica` that every concrete shape really *is* — while interfaces model shared capability — things a class *can do*, regardless of where it sits in the inheritance tree. Getting this choice right leads to code that is easy to extend; getting it wrong leads to brittle hierarchies that resist change.
+
+---
+
+## Abstract Classes
+
+### The `abstract` keyword
+
+An **abstract class** is a class that cannot be instantiated directly. You declare it with the `abstract` modifier. It can contain:
+
+- **Abstract methods** — declared with `abstract`, no body, must be overridden by every concrete subclass.
+- **Concrete methods** — fully implemented, inherited as-is (or overridden) by subclasses.
+- **Fields and constructors** — abstract classes can hold state and define constructors that subclasses call via `super(...)`.
+
+### `FiguraGeometrica` — a shape hierarchy
+
+`FiguraGeometrica` declares an abstract method `dibujar()`. Every shape (circle, rectangle, triangle…) must know how to draw itself, but the *how* is specific to each shape — there is no sensible default implementation.
+
+```java title="domain/FiguraGeometrica.java"
+package domain;
+
+public abstract class FiguraGeometrica {
+    protected String tipoFigura;
+
+    // Constructors ARE allowed in abstract classes; called via super() from subclasses
+    protected FiguraGeometrica(String tipoFigura) {
+        this.tipoFigura = tipoFigura;
+    }
+
+    // Abstract method — every concrete subclass MUST implement this
+    public abstract void dibujar();
+
+    // Concrete method — shared by all shapes
+    public String getTipoFigura() {
+        return tipoFigura;
+    }
+
+    public void setTipoFigura(String tipoFigura) {
+        this.tipoFigura = tipoFigura;
+    }
+
+    @Override
+    public String toString() {
+        return "FiguraGeometrica{" + "tipoFigura=" + tipoFigura + '}';
+    }
+}
+```
+
+<Note>
+  Attempting `new FiguraGeometrica("Círculo")` produces a **compile error**: `FiguraGeometrica is abstract; cannot be instantiated`. You must always instantiate a concrete subclass and, if needed, store it in a `FiguraGeometrica` reference (upcasting).
+</Note>
+
+### Implementing `dibujar()` in `Rectangulo`
+
+`Rectangulo` extends `FiguraGeometrica` and provides a concrete body for `dibujar()`. The `@Override` annotation confirms that it is satisfying the abstract contract.
+
+```java title="domain/Rectangulo.java"
+package domain;
+
+public class Rectangulo extends FiguraGeometrica {
+
+    public Rectangulo(String tipoFigura) {
+        super(tipoFigura);
+    }
+
+    @Override
+    public void dibujar() {
+        System.out.println("Se imprime un: " + this.getClass().getSimpleName());
+        // Output: Se imprime un: Rectangulo
+    }
+}
+```
+
+<Accordion title="What happens if a subclass does not implement all abstract methods?">
+  If a concrete class extends an abstract class but does not override every abstract method, the compiler refuses to compile it and reports `Rectangulo is not abstract and does not override abstract method dibujar() in FiguraGeometrica`. The only legal alternative is to declare the subclass `abstract` as well, pushing the obligation down to its own children.
+</Accordion>
+
+---
+
+## Interfaces
+
+### Interface syntax and rules
+
+An **interface** is a pure contract. Before Java 8, every method in an interface was implicitly `public abstract` and every field was implicitly `public static final`. That is still the dominant pattern used in courses like this one.
+
+Key characteristics:
+- Declared with the `interface` keyword.
+- All methods are `public abstract` by default — no body (unless using Java 8+ `default` methods).
+- All fields are `public static final` constants.
+- A class can `implement` **multiple** interfaces simultaneously.
+- Interfaces cannot be instantiated directly.
+
+### `IAccesoDatos` — a CRUD contract
+
+`IAccesoDatos` defines the four operations every data-access object must support: insert, list, update, and delete. The constant `MAX_REGISTRO` is implicitly `public static final`.
+
+```java title="accesodatos/IAccesoDatos.java"
+package accesodatos;
+
+public interface IAccesoDatos {
+    int MAX_REGISTRO = 10; // implicitly public static final
+
+    // All methods below are implicitly public and abstract
+    void insertar();
+    void listar();
+    void actualizar();
+    void eliminar();
+}
+```
+
+---
+
+## Implementing Interfaces
+
+A class declares that it satisfies an interface's contract using the `implements` keyword. The compiler enforces that **every** method listed in the interface has a concrete implementation in the class (or in one of its parents).
+
+### `ImplementacionMySql`
+
+```java title="accesodatos/ImplementacionMySql.java"
+package accesodatos;
+
+public class ImplementacionMySql implements IAccesoDatos {
+
+    @Override
+    public void insertar() {
+        System.out.println("Insertar desde MySql");
+    }
+
+    @Override
+    public void listar() {
+        System.out.println("Listar desde MySql");
+    }
+
+    @Override
+    public void actualizar() {
+        System.out.println("Actualizar desde MySql");
+    }
+
+    @Override
+    public void eliminar() {
+        System.out.println("Eliminar desde MySql");
+    }
+}
+```
+
+### `ImplementacionOracle`
+
+```java title="accesodatos/ImplementacionOracle.java"
+package accesodatos;
+
+public class ImplementacionOracle implements IAccesoDatos {
+
+    @Override
+    public void insertar() {
+        System.out.println("Insertar desde Oracle");
+    }
+
+    @Override
+    public void listar() {
+        System.out.println("Listar desde Oracle");
+    }
+
+    @Override
+    public void actualizar() {
+        System.out.println("Actualizar desde Oracle");
+    }
+
+    @Override
+    public void eliminar() {
+        System.out.println("Eliminar desde Oracle");
+    }
+}
+```
+
+### Swapping implementations at runtime
+
+Because both classes implement the same interface, you can store either one in an `IAccesoDatos` variable and switch seamlessly — a textbook example of the **Strategy** pattern.
+
+```java title="test/TestInterfaces.java"
+package test;
+
+import accesodatos.*;
+
+public class TestInterfaces {
+    public static void main(String[] args) {
+        IAccesoDatos datos = new ImplementacionMySql();
+        // datos.listar(); → "Listar desde MySql"
+
+        datos = new ImplementacionOracle(); // swap with no other code change
+        imprimir(datos);
+        // Output: Listar desde Oracle
+    }
+
+    public static void imprimir(IAccesoDatos datos) {
+        datos.listar();
+    }
+}
+```
+
+<Tip>
+  The `imprimir` method accepts `IAccesoDatos` — not a concrete class. This means you can pass **any** implementation (MySQL, Oracle, PostgreSQL, an in-memory mock for tests…) without touching the method. Program to the interface, not the implementation.
+</Tip>
+
+---
+
+## Abstract Class vs. Interface — Comparison
+
+| Feature | Abstract Class | Interface |
+|---|---|---|
+| Can hold instance fields (state)? | ✅ Yes | ❌ No (only `static final` constants) |
+| Can have constructors? | ✅ Yes | ❌ No |
+| Can provide concrete methods? | ✅ Yes | ⚠️ Only with Java 8+ `default`/`static` |
+| Multiple inheritance? | ❌ Single parent only | ✅ A class can implement many interfaces |
+| Instantiable directly? | ❌ No | ❌ No |
+| Access modifiers on members? | Any (`public`, `protected`, `private`) | Implicitly `public` |
+| When to use | Shared identity + partial implementation | Shared capability / contract |
+
+<Tip>
+  **Rule of thumb:** If the relationship is truly "is-a" and you want to share implementation code, lean toward an **abstract class**. If the relationship is "can-do" — you want to describe a capability that unrelated classes might share — use an **interface**. In modern Java design, interfaces are preferred whenever possible because they allow a class to satisfy multiple contracts simultaneously.
+</Tip>

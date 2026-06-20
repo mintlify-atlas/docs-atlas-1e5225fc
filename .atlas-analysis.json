@@ -1,0 +1,125 @@
+{
+  "projectType": "general",
+  "projectName": "Print-Estoy-Cansado-Jefe",
+  "projectDescription": "A third-semester university programming course repository covering object-oriented programming concepts in Java, Python, and JavaScript, including OOP fundamentals, exception handling, file I/O, database access with psycopg2, and browser-based mini-games.",
+  "theme": "palm",
+  "primaryColor": "#4F46E5",
+  "lightColor": "#818CF8",
+  "darkColor": "#3730A3",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "repository-structure"]
+          }
+        ]
+      },
+      {
+        "tab": "Java",
+        "groups": [
+          {
+            "group": "Core OOP",
+            "pages": [
+              "java/inheritance-and-classes",
+              "java/varargs-enums-initializers",
+              "java/access-modifiers"
+            ]
+          },
+          {
+            "group": "Advanced OOP",
+            "pages": [
+              "java/overriding-and-polymorphism",
+              "java/casting-and-object-class",
+              "java/abstract-classes-and-interfaces"
+            ]
+          },
+          {
+            "group": "Exceptions & Applications",
+            "pages": [
+              "java/exceptions",
+              "java/javabeans",
+              "java/console-applications"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Python",
+        "groups": [
+          {
+            "group": "Exceptions & File I/O",
+            "pages": [
+              "python/exception-handling",
+              "python/file-io"
+            ]
+          },
+          {
+            "group": "Database Access",
+            "pages": [
+              "python/psycopg2-basics",
+              "python/crud-operations",
+              "python/transactions-and-pooling"
+            ]
+          },
+          {
+            "group": "OOP & Patterns",
+            "pages": [
+              "python/oop-and-dao-pattern",
+              "python/logging"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "JavaScript",
+        "groups": [
+          {
+            "group": "OOP & Language Features",
+            "pages": [
+              "javascript/oop-and-prototypes",
+              "javascript/arrow-functions",
+              "javascript/callbacks-and-timers"
+            ]
+          },
+          {
+            "group": "Projects & Games",
+            "pages": [
+              "javascript/n-queens",
+              "javascript/towers-of-hanoi",
+              "javascript/other-projects"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Java OOP: inheritance, polymorphism, abstract classes, interfaces, casting, and JavaBeans",
+    "Java exception handling: checked/unchecked exceptions, custom exception classes, try-catch-finally",
+    "Java console applications: interactive menus with Scanner and switch statements",
+    "Python exception handling with custom exception classes and else/finally blocks",
+    "Python file I/O: reading, writing, and context managers",
+    "Python PostgreSQL access via psycopg2: CRUD, transactions, and connection pooling",
+    "Python DAO pattern: Persona, Conexion, PersonaDao classes with PostgreSQL",
+    "JavaScript OOP using ES6 classes, inheritance, and polymorphism",
+    "JavaScript arrow functions, callbacks, setTimeout, and setInterval",
+    "Browser-based games: N-Queens solver, Towers of Hanoi, Rock-Paper-Scissors, Knight's Tour",
+    "Interactive clock app with dynamic backgrounds using setInterval"
+  ],
+  "publicApiSurface": [
+    "Java: DispositivoEntrada, Teclado, Raton, Monitor, Computadora, Orden classes (mundopc package)",
+    "Java: FiguraGeometrica abstract class with dibujar() abstract method",
+    "Java: IAccesoDatos interface (insertar, listar, actualizar, eliminar)",
+    "Java: Persona class with CRUD menu (Clase 10)",
+    "Python: PersonaDao.seleccionar(), PersonaDao.insertar(), PersonaDao.actualizando(), PersonaDao.eliminar()",
+    "Python: Conexion.obtenerConexion(), Conexion.obtenerCursor(), Conexion.obtenerPool(), Conexion.cerrar()",
+    "Python: CatalogoPeliculas.agregar_pelicula(), CatalogoPeliculas.listar_peliculas(), CatalogoPeliculas.eliminar()",
+    "JavaScript: resolver() — N-Queens backtracking solver",
+    "JavaScript: backtrack(fila) — recursive board solver",
+    "JavaScript: actualizarReloj() — live clock with setInterval",
+    "JavaScript: miFuncionFlecha — arrow function demonstrations"
+  ]
+}

@@ -1,0 +1,394 @@
+---
+title: "Java Inheritance: Building the MundoPC Class Hierarchy"
+sidebarTitle: "Inheritance"
+description: "Learn how to model a computer store system in Java using class inheritance, constructors, getters/setters, and toString — based on the MundoPC exercises from Clase 1."
+---
+
+The **MundoPC** project puts OOP principles into practice by modelling a simplified computer store. Instead of writing one giant class, we break the domain into focused, reusable classes: input devices share a common parent (`DispositivoEntrada`), a `Monitor` stands alone, a `Computadora` is assembled from those parts, and an `Orden` groups computers into a manageable list. Inheritance lets child classes reuse parent fields and methods while adding their own specialised behaviour — and constructor chaining through `super()` ensures every object is properly initialised at every level of the hierarchy.
+
+---
+
+## Class Hierarchy Overview
+
+```
+DispositivoEntrada          ← parent / superclass
+├── Teclado                 ← child: adds idTeclado, static counter
+└── Raton                   ← child: adds idRaton, static counter
+
+Monitor                     ← standalone class (no parent)
+Computadora                 ← uses Monitor + Teclado + Raton (composition)
+Orden                       ← manages an array of Computadora objects
+```
+
+<CardGroup cols={2}>
+  <Card title="Inheritance" icon="sitemap">
+    `Teclado` and `Raton` extend `DispositivoEntrada`, inheriting its fields and methods without rewriting them.
+  </Card>
+  <Card title="Composition" icon="cubes">
+    `Computadora` holds references to `Monitor`, `Teclado`, and `Raton` — objects working together.
+  </Card>
+  <Card title="Static Counters" icon="hashtag">
+    Each class uses a `private static int contador` to auto-assign unique IDs to every new instance.
+  </Card>
+  <Card title="toString Override" icon="terminal">
+    Every class overrides `toString()` so `System.out.println(obj)` produces a human-readable description.
+  </Card>
+</CardGroup>
+
+---
+
+## Step-by-Step: Building the Hierarchy
+
+<Steps>
+
+### Step 1 — The Parent Class: `DispositivoEntrada`
+
+`DispositivoEntrada` defines the two fields that **all** input devices share: `tipoEntrada` and `marca`. It provides a constructor, getters/setters, and a `toString()` that child classes will call via `super.toString()`.
+
+```java title="DispositivoEntrada.java"
+package ar.com.system2023.mundpc;
+
+public class DispositivoEntrada {
+    private String tipoEntrada;
+    private String marca;
+
+    public DispositivoEntrada(String tipoEntrada, String marca) {
+        this.tipoEntrada = tipoEntrada;
+        this.marca = marca;
+    }
+
+    public String getTipoEntrada() {
+        return this.tipoEntrada;
+    }
+
+    public void setTipoEntrada(String tipoEntrada) {
+        this.tipoEntrada = tipoEntrada;
+    }
+
+    public String getMarca() {
+        return this.marca;
+    }
+
+    public void setMarca(String marca) {
+        this.marca = marca;
+    }
+
+    @Override
+    public String toString() {
+        return "DispositivoEntrada{" + "tipoEntrada='" + tipoEntrada + '\''
+                + ", marca='" + marca + '\'' + '}';
+    }
+}
+```
+
+<Note>
+  Making `tipoEntrada` and `marca` **private** (not `protected`) means child classes must go through the public getter/setter API — a deliberate encapsulation choice. The parent's `toString()` exposes both values so children don't need to repeat that logic.
+</Note>
+
+### Step 2 — Child Classes: `Teclado` and `Raton`
+
+Both child classes use `extends DispositivoEntrada` and call `super(tipoEntrada, marca)` to initialise the parent's fields. Each also maintains a **static counter** so every new object gets a unique sequential ID stored in a `final` field.
+
+<CodeGroup>
+
+```java title="Teclado.java"
+package ar.com.system2023.mundpc;
+
+public class Teclado extends DispositivoEntrada {
+    private final int idTeclado;
+    private static int contadorTeclados;
+
+    public Teclado(String tipoEntrada, String marca) {
+        super(tipoEntrada, marca);          // initialise parent fields
+        this.idTeclado = ++Teclado.contadorTeclados;
+    }
+
+    @Override
+    public String toString() {
+        return "Teclado{" + "idTeclado=" + idTeclado + ", " + super.toString() + '}';
+    }
+}
+```
+
+```java title="Raton.java"
+package ar.com.system2023.mundopc;
+
+public class Raton extends DispositivoEntrada {
+    private final int idRaton;
+    private static int contadorRatones;
+
+    public Raton(String tipoEntrada, String marca) {
+        super(tipoEntrada, marca);          // initialise parent fields
+        this.idRaton = ++Raton.contadorRatones;
+    }
+
+    @Override
+    public String toString() {
+        return "Raton{" + "idRaton=" + idRaton + ", " + super.toString() + '}';
+    }
+}
+```
+
+</CodeGroup>
+
+**Key points:**
+
+- `extends DispositivoEntrada` establishes the IS-A relationship.
+- `super(tipoEntrada, marca)` must be the **first statement** in the constructor.
+- `contadorTeclados` / `contadorRatones` are `static` — shared by all instances of that class — so each new object increments a single class-level counter.
+- `idTeclado` / `idRaton` are `final` — once set in the constructor, they never change.
+- `@Override toString()` appends the child's own ID then embeds `super.toString()` to include parent details.
+
+### Step 3 — Standalone Class: `Monitor`
+
+`Monitor` does not extend `DispositivoEntrada` (it is an output device, not an input one). It demonstrates **constructor chaining with `this()`**: the private no-arg constructor handles ID assignment, and the public constructor delegates to it before setting its own fields.
+
+```java title="Monitor.java"
+package ar.com.system2023.mundopc;
+
+public class Monitor {
+    private final int idMonitor;
+    private String marca;
+    private double tamanio;
+    private static int contadorMonitores;
+
+    // Private constructor — only used internally
+    private Monitor() {
+        this.idMonitor = ++Monitor.contadorMonitores;
+    }
+
+    // Public constructor delegates to the private one first
+    public Monitor(String marca, double tamanio) {
+        this();          // calls Monitor() above to assign the ID
+        this.marca = marca;
+        this.tamanio = tamanio;
+    }
+
+    public String getMarca()          { return this.marca; }
+    public void   setMarca(String m)  { this.marca = m; }
+    public double getTamanio()        { return this.tamanio; }
+    public void   setTamanio(double t){ this.tamanio = t; }
+    public int    getIdMonitor()      { return this.idMonitor; }
+
+    @Override
+    public String toString() {
+        return "Monitor{" + "idMonitor=" + idMonitor
+                + ", marca=" + marca + ", tamanio=" + tamanio + '}';
+    }
+}
+```
+
+<Tip>
+  Using `this()` to chain constructors avoids duplicating the ID-assignment logic. The private constructor acts as a single source of truth for ID generation, and the public constructor simply enriches that base.
+</Tip>
+
+### Step 4 — Composition Class: `Computadora`
+
+`Computadora` uses **composition**: instead of extending `Monitor`, `Teclado`, or `Raton`, it holds references to them as fields. This models the real-world relationship — a computer *has* a monitor, not *is* a monitor.
+
+```java title="Computadora.java"
+package ar.com.system2023.mundopc;
+
+public class Computadora {
+    private final int idComputadora;
+    private String nombre;
+    private Monitor monitor;
+    private Teclado teclado;
+    private Raton raton;
+    private static int contadorComputadoras;
+
+    // Private constructor — assigns the auto-incremented ID
+    private Computadora() {
+        this.idComputadora = ++Computadora.contadorComputadoras;
+    }
+
+    // Public constructor delegates to the private one, then sets fields
+    public Computadora(String nombre, Monitor monitor, Teclado teclado, Raton raton) {
+        this();
+        this.nombre  = nombre;
+        this.monitor = monitor;
+        this.teclado = teclado;
+        this.raton   = raton;
+    }
+
+    public int     getIdComputadora()              { return idComputadora; }
+    public String  getNombre()                     { return nombre; }
+    public void    setNombre(String nombre)        { this.nombre = nombre; }
+    public Monitor getMonitor()                    { return monitor; }
+    public void    setMonitor(Monitor monitor)     { this.monitor = monitor; }
+    public Teclado getTeclado()                    { return teclado; }
+    public void    setTeclado(Teclado teclado)     { this.teclado = teclado; }
+    public Raton   getRaton()                      { return raton; }
+    public void    setRaton(Raton raton)           { this.raton = raton; }
+
+    @Override
+    public String toString() {
+        return "Computadora{" + "idComputadora=" + idComputadora
+                + ", nombre=" + nombre + ", monitor=" + monitor
+                + ", teclado=" + teclado + ", raton=" + raton + '}';
+    }
+}
+```
+
+### Step 5 — List Manager: `Orden`
+
+`Orden` manages a fixed-size array of `Computadora` objects. It tracks how many computers have been added with an instance counter and prevents overflow by checking against `MAX_COMPUTADORAS`.
+
+```java title="Orden.java"
+public class Orden {
+    private final int idOrden;
+    private Computadora[] computadora;      // array of objects
+    private static int contadorOrdenes;
+    private static final int MAX_COMPUTADORAS = 10;
+    private int contadorComputadora;
+
+    public Orden() {
+        this.idOrden     = ++Orden.contadorOrdenes;
+        this.computadora = new Computadora[Orden.MAX_COMPUTADORAS];
+    }
+
+    // Add a computer to the order (up to MAX_COMPUTADORAS)
+    public void agregarComputadora(Computadora computadora) {
+        if (this.contadorComputadora < Orden.MAX_COMPUTADORAS) {
+            this.computadora[this.contadorComputadora++] = computadora;
+        } else {
+            System.out.println("Has superado el limite: " + Orden.MAX_COMPUTADORAS);
+        }
+    }
+
+    // Print the full order
+    public void mostrarOrden() {
+        System.out.println("Orden #: " + this.idOrden);
+        System.out.println("Computadoras de la orden #: " + this.idOrden);
+        for (int i = 0; i < this.contadorComputadora; i++) {
+            System.out.println(this.computadora[i]);
+        }
+    }
+}
+```
+
+### Step 6 — Putting It All Together: `MundoPc.java`
+
+The `main` method creates multiple sets of peripherals, assembles `Computadora` objects from them, and adds them to two `Orden` lists. Calling `mostrarOrden()` prints each order using the chained `toString()` methods.
+
+```java title="MundoPc.java"
+package ar.com.system2023.mundpc.mundopc;
+import ar.com.system2023.mundopc.*;
+
+public class MundoPc {
+    public static void main(String[] args) {
+
+        // --- HP set ---
+        Monitor  monitorHP  = new Monitor("HP", 23);
+        Teclado  tecladoHP  = new Teclado("Bluetooth", "HP");
+        Raton    ratonHP    = new Raton("Bluetooth", "HP");
+        Computadora compuHP = new Computadora("Computadora HP", monitorHP, tecladoHP, ratonHP);
+
+        // --- Gamer set ---
+        Monitor  monitorGamer  = new Monitor("Gamer", 32);
+        Teclado  tecladoGamer  = new Teclado("Bluetooth", "Gamer");
+        Raton    ratonGamer    = new Raton("Bluetooth", "Gamer");
+        Computadora compuGamer = new Computadora("Computadora Gamer", monitorGamer, tecladoGamer, ratonGamer);
+
+        // --- Dell / Lenovo / Apple / Asus / Acer / MSI / Razer / Samsung (same pattern) ---
+        Monitor  monitorDell  = new Monitor("Dell", 27);
+        Teclado  tecladoDell  = new Teclado("USB", "Dell");
+        Raton    ratonDell    = new Raton("USB", "Dell");
+        Computadora compuDell = new Computadora("Computadora Dell", monitorDell, tecladoDell, ratonDell);
+
+        // ... (Lenovo, Apple, Asus, Acer, MSI, Razer, Samsung follow the same pattern)
+
+        // --- Orders ---
+        Orden orden1 = new Orden();
+        Orden orden2 = new Orden();
+
+        // Fill orden1 up to the 10-computer limit
+        orden1.agregarComputadora(compuHP);
+        orden1.agregarComputadora(compuGamer);
+        orden1.agregarComputadora(compuDell);
+        // ... add remaining computers
+
+        // orden2 with a mixed-parts computer
+        Computadora compusVarias = new Computadora(
+                "Computadora de diferentes marcas", monitorHP, tecladoGamer, ratonHP);
+        orden2.agregarComputadora(compusVarias);
+
+        System.out.println("Orden 1: ");
+        orden1.mostrarOrden();
+        System.out.println("\nOrden 2: ");
+        orden2.mostrarOrden();
+    }
+}
+```
+
+</Steps>
+
+---
+
+## Key Concepts Reference
+
+<AccordionGroup>
+
+  <Accordion title="extends — establishing IS-A relationships">
+    The `extends` keyword creates a subclass. `Teclado extends DispositivoEntrada` means *every Teclado is-a DispositivoEntrada* and inherits its `tipoEntrada`, `marca`, and all public/protected methods.
+
+    ```java
+    public class Teclado extends DispositivoEntrada { ... }
+    public class Raton   extends DispositivoEntrada { ... }
+    ```
+  </Accordion>
+
+  <Accordion title="super() — constructor chaining upward">
+    When a child class is instantiated, Java requires the parent constructor to run first. `super(tipoEntrada, marca)` explicitly calls the parent's constructor and **must be the first line** of the child constructor.
+
+    ```java
+    public Teclado(String tipoEntrada, String marca) {
+        super(tipoEntrada, marca);   // parent constructor runs first
+        this.idTeclado = ++Teclado.contadorTeclados;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="this() — constructor chaining within the same class">
+    `this()` calls another constructor in the **same** class. In `Monitor` and `Computadora`, the private no-arg constructor handles ID assignment and the public constructor delegates to it with `this()` before setting its own fields.
+
+    ```java
+    private Monitor() {
+        this.idMonitor = ++Monitor.contadorMonitores;  // ID assigned here
+    }
+
+    public Monitor(String marca, double tamanio) {
+        this();          // runs the private constructor first
+        this.marca   = marca;
+        this.tamanio = tamanio;
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="@Override toString()">
+    Overriding `toString()` lets `System.out.println(obj)` produce meaningful output. The child's `toString()` typically adds its own fields and then embeds the parent's output via `super.toString()`:
+
+    ```java
+    @Override
+    public String toString() {
+        return "Raton{" + "idRaton=" + idRaton + ", " + super.toString() + '}';
+        // → Raton{idRaton=1, DispositivoEntrada{tipoEntrada='Bluetooth', marca='HP'}}
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="static counters and final IDs">
+    A `private static int contador` lives at the class level — one copy shared by all instances. Incrementing it inside the constructor (`++Clase.contador`) gives each new object a unique sequential ID, which is then stored in a `private final int id` field that can never be changed.
+
+    ```java
+    private static int contadorRatones;   // shared counter
+    private final  int idRaton;           // per-instance, immutable
+
+    public Raton(String tipoEntrada, String marca) {
+        super(tipoEntrada, marca);
+        this.idRaton = ++Raton.contadorRatones;
+    }
+    ```
+  </Accordion>
+
+</AccordionGroup>

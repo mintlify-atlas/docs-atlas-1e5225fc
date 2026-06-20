@@ -1,0 +1,319 @@
+---
+title: "Rock-Paper-Scissors, Knight's Tour, Avatar Game, and Login UI Projects"
+sidebarTitle: "Other Projects"
+description: "Four additional browser JavaScript projects from the course: a Rock-Paper-Scissors game, Knight's Tour puzzle solver, an Avatar character game, and an animated login form with CSS effects."
+---
+
+Beyond the algorithmic puzzles, the *Area Juegos* section of the course produced four additional browser-based projects that cover a wide range of JavaScript concepts — from classic game logic and combinatorial backtracking to DOM manipulation, event-driven programming, and CSS animation. Each project runs entirely in the browser: no build tools, no frameworks, just plain HTML, CSS, and vanilla JavaScript.
+
+<CardGroup cols={2}>
+  <Card title="Rock-Paper-Scissors" icon="hand-back-fist" href="#rock-paper-scissors">
+    Player vs. computer with modular arithmetic win detection and dynamic CSS feedback.
+  </Card>
+  <Card title="Knight's Tour" icon="chess-knight" href="#knights-tour">
+    Visit all 64 squares of a chessboard exactly once using recursive backtracking with 8-directional L-shaped moves.
+  </Card>
+  <Card title="Avatar Game" icon="dragon" href="#avatar-game">
+    Avatar: The Last Airbender–themed combat game with character selection, attack buttons, and dynamic result messages.
+  </Card>
+  <Card title="Web Viva Login Form" icon="lock" href="#web-viva-login-form">
+    Animated login UI with a CSS gradient background, floating squares, and JavaScript form validation.
+  </Card>
+</CardGroup>
+
+---
+
+## Rock-Paper-Scissors
+
+A clean player-vs-computer implementation of the classic game. The player clicks one of three buttons (✊ Piedra, ✋ Papel, ✌️ Tijera), the computer picks at random, and the winner is determined instantly with a visual CSS class applied to the game container.
+
+### How it works
+
+Choices are mapped to integers — `1 = Piedra`, `2 = Papel`, `3 = Tijera` — and the win condition uses a single modular-arithmetic expression that avoids a verbose chain of if-else comparisons:
+
+```javascript title="juego.js — core game logic"
+function jugar(eleccionUsuario) {
+  // 1 = piedra, 2 = papel, 3 = tijera
+  let jugador = eleccionUsuario;
+  let pc = aleatorio(1, 3); // computer picks randomly
+
+  const opcionesTexto = {
+    1: "✊ Piedra",
+    2: "✋ Papel",
+    3: "✌️ Tijera",
+  };
+
+  let estado = "";
+  let mensaje = "";
+
+  if (jugador === pc) {
+    estado = "empate";
+    mensaje = "¡EMPATE! 🤝";
+  } else if ((jugador - pc + 3) % 3 === 1) {
+    // Modular arithmetic: player beats computer when (jugador - pc + 3) % 3 === 1
+    // 1-3+3=1 → Piedra beats Tijera ✓
+    // 2-1+3=4 → 4%3=1 → Papel beats Piedra ✓
+    // 3-2+3=4 → 4%3=1 → Tijera beats Papel ✓
+    estado = "ganaste";
+    mensaje = "¡GANASTE! 🎉";
+  } else {
+    estado = "perdiste";
+    mensaje = "PERDISTE ❌";
+  }
+
+  textoResultado.innerText = mensaje;
+  textoResultado.className = estado;
+
+  // Apply win/lose/draw CSS class to the container for visual feedback
+  container.className = "game-container " + estado;
+}
+```
+
+### Event binding
+
+Buttons are bound dynamically using `querySelectorAll` and a `data-eleccion` attribute on each button, keeping the HTML clean and the JS generic:
+
+```javascript title="juego.js — dynamic event binding"
+document.addEventListener("DOMContentLoaded", function () {
+  const botonesOpciones = document.querySelectorAll(".btn-opcion");
+
+  botonesOpciones.forEach((boton) => {
+    boton.addEventListener("click", function () {
+      let eleccion = Number(this.getAttribute("data-eleccion"));
+      jugar(eleccion);
+    });
+  });
+
+  document.getElementById("btn-reiniciar")
+    .addEventListener("click", reiniciarJuego);
+});
+```
+
+---
+
+## Knight's Tour
+
+The Knight's Tour asks: can a chess knight visit every square on an 8×8 board **exactly once**? The answer is yes — and this project solves it using recursive backtracking starting from position `(0, 0)`.
+
+### The 8 L-shaped moves
+
+A knight always moves in an "L": two squares in one direction, one in the perpendicular. All eight possible deltas are pre-encoded as parallel `dx`/`dy` arrays:
+
+```javascript title="saltoDelCaballo.js — movement vectors"
+const N = 8;
+
+// dx = row offset, dy = column offset for each of the 8 knight moves
+const dx = [ 2,  1, -1, -2, -2, -1,  1,  2];
+const dy = [ 1,  2,  2,  1, -1, -2, -2, -1];
+```
+
+### Board initialisation and validation
+
+The board is an N×N matrix initialised to `-1` (unvisited). A move is valid only if the target cell is within bounds and has not been visited yet:
+
+```javascript title="saltoDelCaballo.js — board setup and move validation"
+function crearTablero() {
+  const tablero = [];
+  for (let i = 0; i < N; i++) {
+    tablero.push(new Array(N).fill(-1));
+  }
+  return tablero;
+}
+
+function esValido(x, y, tablero) {
+  return (
+    x >= 0 && y >= 0 &&    // not out-of-bounds (top / left)
+    x < N  && y < N  &&    // not out-of-bounds (bottom / right)
+    tablero[x][y] === -1   // cell not yet visited
+  );
+}
+```
+
+### The backtracking solver
+
+`salto()` records the current move number in the board cell, recurses to the next step, and resets to `-1` if that path leads to a dead end:
+
+```javascript title="saltoDelCaballo.js — recursive backtracking"
+function salto(x, y, paso, tablero) {
+  // Base case: all N*N squares visited
+  if (paso === N * N) return true;
+
+  for (let i = 0; i < 8; i++) {
+    const nx = x + dx[i];
+    const ny = y + dy[i];
+
+    if (esValido(nx, ny, tablero)) {
+      tablero[nx][ny] = paso;            // mark this step
+
+      if (salto(nx, ny, paso + 1, tablero)) {
+        return true;                     // solution found — propagate up
+      }
+
+      tablero[nx][ny] = -1;              // backtrack — unmark the cell
+    }
+  }
+
+  return false; // no valid move from this position
+}
+```
+
+The solution is printed to the console as a numbered grid showing the visit order of each cell. Execution time is measured with `Date.now()` before and after the call.
+
+---
+
+## Avatar Game
+
+Inspired by *Avatar: The Last Airbender*, this game pits the player's chosen character against a randomly selected computer opponent in a combat system that mirrors Rock-Paper-Scissors.
+
+### Characters and attacks
+
+| Character | Element |
+|---|---|
+| 🔥 Zuko | Fire |
+| 🌪️ Aang | Air |
+| 💧 Katara | Water |
+| 🌱 Toph | Earth |
+
+Attacks follow a cyclic win relationship:
+
+| Attack | Beats |
+|---|---|
+| 👊 Puñetazo | 🧹 Barrida |
+| 🦵 Patada | 👊 Puñetazo |
+| 🧹 Barrida | 🦵 Patada |
+
+### Core game logic
+
+```javascript title="avatar.js — combat resolution"
+function combate() {
+  if (ataqueJugador === ataqueEnemigo) {
+    crearMensaje("EMPATE");
+  } else if (
+    (ataqueJugador === "Puñetazo" && ataqueEnemigo === "Barrida") ||
+    (ataqueJugador === "Patada"   && ataqueEnemigo === "Puñetazo") ||
+    (ataqueJugador === "Barrida"  && ataqueEnemigo === "Patada")
+  ) {
+    crearMensaje("GANASTE");
+  } else {
+    crearMensaje("PERDISTE");
+  }
+}
+```
+
+### Dynamic message creation
+
+Rather than toggling a pre-existing element, each round appends a new `<p>` to the `#mensajes` section using `createElement` and `appendChild`, building a running combat log:
+
+```javascript title="avatar.js — dynamic message log"
+function crearMensaje(resultado) {
+  const seccionMensaje = document.getElementById("mensajes");
+  const parrafo = document.createElement("p");
+
+  parrafo.innerHTML =
+    "Tu personaje atacó con " + ataqueJugador +
+    ", el personaje enemigo atacó con " + ataqueEnemigo +
+    " - " + resultado;
+
+  seccionMensaje.appendChild(parrafo);
+}
+```
+
+### Character selection flow
+
+The player picks a character via radio buttons and clicks *Seleccionar*. The `seleccionarPersonajeJugador()` function reads which radio is `checked`, updates the display, and immediately triggers `seleccionarPersonajeEnemigo()` to assign a random opponent:
+
+```javascript title="avatar.js — player and enemy selection"
+function seleccionarPersonajeJugador() {
+  const spanPersonajeJugador = document.getElementById("personaje-jugador");
+
+  if (inputZuko.checked)       spanPersonajeJugador.innerHTML = "Zuko";
+  else if (inputAang.checked)  spanPersonajeJugador.innerHTML = "Aang";
+  else if (inputKatara.checked) spanPersonajeJugador.innerHTML = "Katara";
+  else if (inputToph.checked)  spanPersonajeJugador.innerHTML = "Toph";
+  else {
+    alert("No seleccionaste ningún personaje");
+    return;
+  }
+
+  seleccionarPersonajeEnemigo(); // random enemy assigned immediately
+}
+
+function seleccionarPersonajeEnemigo() {
+  const personajeAleatorio = aleatorio(1, 4);
+  const spanPersonajeEnemigo = document.getElementById("personaje-enemigo");
+
+  switch (personajeAleatorio) {
+    case 1: spanPersonajeEnemigo.innerHTML = "Zuko";   break;
+    case 2: spanPersonajeEnemigo.innerHTML = "Aang";   break;
+    case 3: spanPersonajeEnemigo.innerHTML = "Katara"; break;
+    case 4: spanPersonajeEnemigo.innerHTML = "Toph";   break;
+  }
+}
+```
+
+---
+
+## Web Viva Login Form
+
+This project showcases a visually animated login UI — the focus here is on CSS effects combined with JavaScript form validation. The page features a gradient background, five floating animated squares, and a centered login card.
+
+### HTML structure
+
+The visual effect is created with `.color` divs for the gradient backdrop and `.square` divs (with CSS custom property `--i`) for the floating animation. All squares are siblings of the main `.container`:
+
+```html title="index.html — animated background structure (simplified)"
+<section>
+  <div class="color"></div>
+  <div class="color"></div>
+  <div class="color"></div>
+  <div class="box">
+    <div class="square" style="--i:0"></div>
+    <div class="square" style="--i:1"></div>
+    <div class="square" style="--i:2"></div>
+    <div class="square" style="--i:3"></div>
+    <div class="square" style="--i:4"></div>
+    <div class="container">
+      <!-- login form lives here -->
+    </div>
+  </div>
+</section>
+```
+
+The CSS uses `--i` as a stagger offset so each square animates at a different phase, creating an organic floating effect without JavaScript.
+
+### Form validation
+
+The JavaScript intercepts the form's `submit` event, prevents the default page reload, and checks hard-coded credentials. A successful login navigates to `exito.html`; a failed attempt shows an error message that auto-hides after 3 seconds:
+
+```javascript title="codigo.js — login validation with timed error feedback"
+document.addEventListener("DOMContentLoaded", function () {
+  const loginForm = document.querySelector("form");
+  const mensajeError = document.getElementById("mensaje-error");
+
+  loginForm.addEventListener("submit", function (event) {
+    event.preventDefault(); // stop the browser from reloading the page
+
+    const inputs = loginForm.querySelectorAll("input");
+    const usuario  = inputs[0].value;
+    const password = inputs[1].value;
+
+    if (usuario === "admin" && password === "1234") {
+      window.location.href = "exito.html"; // redirect on success
+    } else {
+      mensajeError.classList.remove("hidden"); // show error banner
+
+      setTimeout(() => {
+        mensajeError.classList.add("hidden"); // auto-hide after 3 s
+      }, 3000);
+    }
+  });
+});
+```
+
+The `hidden` CSS class toggling pattern keeps the logic clean — the error element always exists in the DOM, and visibility is controlled purely through class names.
+
+---
+
+<Tip>
+  All four projects are self-contained and require no server or build step. Open each project's `index.html` directly in your browser (via **File → Open** or by double-clicking in your file manager) and everything will work out of the box. For the Knight's Tour (`saltoDelCaballo.js`), open your browser's DevTools console to see the solved board grid printed as output.
+</Tip>

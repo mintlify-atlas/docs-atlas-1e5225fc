@@ -1,0 +1,196 @@
+---
+title: "Python File I/O: Reading, Writing, and Context Managers"
+sidebarTitle: "File I/O"
+description: "Open, read, and write text files in Python using open(), specify character encodings, use the with statement as a context manager, and manage file handles safely — from Clase 2."
+---
+
+Python's built-in `open()` function gives you direct access to the filesystem without any imports. What makes Python file handling distinctive is the **context manager** protocol: the `with` statement guarantees that a file handle is closed the moment the block exits — whether the code inside succeeds, raises an exception, or is interrupted. Relying on manual `open()` / `close()` pairs is fragile; relying on `with` is not.
+
+<Steps>
+
+## Opening Files — Modes and Encoding
+
+`open()` accepts the file path, a **mode string**, and an optional `encoding` keyword. The mode controls whether Python opens the file for reading, writing, or both, and whether it expects text or raw bytes.
+
+### File mode reference
+
+| Mode | Effect |
+|---|---|
+| `'r'` | Read (default). File must exist. |
+| `'w'` | Write. Creates the file or **truncates** it if it already exists. |
+| `'a'` | Append. Creates the file if needed; writes go to the end. |
+| `'x'` | Exclusive create. Raises `FileExistsError` if the file already exists. |
+| `'r+'` / `'w+'` | Read and write simultaneously. |
+| `'b'` | Binary mode (combine with `'r'`, `'w'`, etc.: `'rb'`, `'wb'`). |
+| `'t'` | Text mode (default; combine with `'r'`, `'w'`, etc.). |
+
+### Writing a file without encoding
+
+```python 1.1 - Introducción al manejo de archivos
+# Declaramos una variable
+try:
+    archivo = open("prueba.txt", "w")   # 'w' = write
+    archivo.write("Programamos con diferentes tipos de archivos, ahora en txt.\n")
+    archivo.write("Con esto terminamos")
+except Exception as e:
+    print(e)
+finally:                    # siempre se ejecuta
+    archivo.close()         # Con esto se debe cerrar el archivo
+```
+
+### Writing a file with explicit encoding
+
+<Warning>
+Without an explicit `encoding` argument, Python falls back to the platform default — `cp1252` on Windows, `UTF-8` on most Linux/macOS systems. This means the same script can produce or misread files differently across machines. **Always specify `encoding='utf8'`** when working with text files that may contain accented characters or non-ASCII symbols.
+</Warning>
+
+```python 1.2 - Especificar el juego de caracteres
+# Declaramos una variable
+try:
+    archivo = open('prueba.txt', 'w', encoding='utf8')   # 'w' = write
+    archivo.write('Programamos con diferentes tipos de archivos, ahora en txt.\n')
+    archivo.write('Los acentos son importantes para las palabras\n')
+    archivo.write('como por ejemplo: acción, ejecución y producción\n')
+    archivo.write('Con esto terminamos')
+except Exception as e:
+    print(e)
+finally:                    # siempre se ejecuta
+    archivo.close()         # Con esto se debe cerrar el archivo
+
+# archivo.write('Todo quedo perfecto')  ← error: handle already closed
+```
+
+## Reading Files
+
+Once a file is open in read mode (`'r'`), Python gives you several methods to consume its content:
+
+| Method | What it returns |
+|---|---|
+| `archivo.read()` | Entire file as a single string |
+| `archivo.read(n)` | Next `n` characters (advances the cursor) |
+| `archivo.readline()` | Next single line including `\n` |
+| `archivo.readlines()` | List of all lines |
+| `for linea in archivo:` | Iterates line-by-line (memory efficient) |
+
+```python 1.3 - Leer archivos y tipos de acciones
+archivo = open('prueba.txt', 'r', encoding='utf8')
+
+# 'r'  → read
+# 'a'  → append
+# 'w'  → write
+# 'x'  → raises exception if file exists
+
+print(archivo.read())
+```
+
+### Advanced reading patterns
+
+```python 1.4 - Más formas de trabajar con archivos / leer_archivos.py
+archivo = open('prueba.txt', 'r', encoding='utf8')
+
+# print(archivo.read())          # todo el contenido de una vez
+# print(archivo.read(16))        # primeros 16 caracteres
+# print(archivo.read(10))        # continúa desde donde quedó el cursor
+
+# print(archivo.readline())      # primera línea
+# print(archivo.readline())      # segunda línea
+
+# Iterar línea por línea
+# for linea in archivo:
+#     print(linea)
+
+# Acceder como lista (indexable)
+# print(archivo.readlines()[11])
+
+# Copiar contenido a un segundo archivo en modo append
+archivo2 = open('copia.txt', 'a', encoding='utf8')
+archivo2.write(archivo.read())
+
+archivo.close()    # cerramos el primer archivo
+archivo2.close()   # cerramos el segundo archivo
+
+print('Se ha terminado el proceso de leer y copiar archivos')
+```
+
+## Writing and Appending
+
+Use `write()` to insert a single string and chain multiple calls to build a file incrementally. Append mode (`'a'`) is important when you want to add content without destroying what is already there.
+
+```python 1.4 - Más formas de trabajar con archivos / manejo_archivos.py
+# Declaramos una variable
+try:
+    archivo = open('prueba.txt', 'w', encoding='utf8')   # 'w' truncates existing content
+    archivo.write('Programamos con diferentes tipos de archivos, ahora en txt.\n')
+    archivo.write('Los acentos son importantes para las palabras\n')
+    archivo.write('como por ejemplo: acción, ejecución y producción\n')
+    archivo.write('las letras son:\n')
+    archivo.write('r read leer,\n')
+    archivo.write('a append anexa,\n')
+    archivo.write('w write escribe,\n')
+    archivo.write('x crea un archivo\n')
+    archivo.write('t esta es para texto o text,\n')
+    archivo.write('b archivos binarios,\n')
+    archivo.write('w+ lee y escribe son igules r+\n')
+    archivo.write('Saludos a todos los alumnos de la tecnicatura\n')
+    archivo.write('Con esto terminamos\n')
+except Exception as e:
+    print(e)
+finally:                    # siempre se ejecuta
+    archivo.close()         # Con esto se debe cerrar el archivo
+```
+
+<Tip>
+When you need to add lines to a log file or a growing dataset, open it with `'a'` instead of `'w'`. Mode `'w'` silently erases everything that was there before — a very easy mistake to make.
+</Tip>
+
+## Context Managers with `with`
+
+The `with` statement is Python's built-in support for the **context manager protocol**. When the block exits (for any reason), Python automatically calls the file object's `__exit__` method, which closes the handle. You get exception safety for free with zero extra code.
+
+<Tip>
+Always prefer `with open(...)` over manual `open()` / `close()` pairs. Manual pairs require a `try / finally` to be safe — `with` gives you that guarantee in one clean line.
+</Tip>
+
+### Part 1 — built-in context manager
+
+```python 1.5 - Uso de with, archivos y contexto Manager Parte 1
+# MANEJO DE CONTEXTO WITH: sintaxis simplificada, abre y cierra el archivo
+with open('prueba.txt', 'r', encoding='utf8') as archivo:
+    print(archivo.read())
+
+# No hace falta ni el try, ni el finally
+# en el contexto de with lo que se ejecuta de manera automática
+# Utiliza diferentes métodos: __enter__ este es el que abre
+# Ahora el siguiente método es el que cierra: __exit__
+```
+
+### Part 2 — building a custom context manager class
+
+Under the hood, `with` relies on two dunder methods. You can implement them yourself to wrap any resource:
+
+```python 1.6 - Uso de with, archivos y contexto Manager Parte 2
+class ManejoArchivos:
+    def __init__(self, nombre):
+        self.nombre = nombre
+
+    def __enter__(self):
+        print('Obtenemos el recurso'.center(50, '-'))
+        self.nombre = open(self.nombre, 'r', encoding='utf8')
+        return self.nombre                 # returned value is bound to `as` variable
+
+    def __exit__(self, tipo_exception, valor_exception, traza_error):
+        print('cerramos el recurso'.center(50, '-'))
+        if self.nombre:
+            self.nombre.close()            # garantizamos el cierre del archivo
+```
+
+Use the custom context manager exactly like the built-in one:
+
+```python using ManejoArchivos
+with ManejoArchivos('prueba.txt') as archivo:
+    print(archivo.read())
+```
+
+`__exit__` receives the exception type, value, and traceback if an error occurred inside the block — returning a truthy value suppresses the exception; returning `None` (the default) lets it propagate normally.
+
+</Steps>

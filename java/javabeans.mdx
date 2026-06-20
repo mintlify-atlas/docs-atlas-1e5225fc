@@ -1,0 +1,163 @@
+---
+title: "JavaBeans: Encapsulation with Private Fields and Accessors"
+sidebarTitle: "JavaBeans"
+description: "Learn the JavaBeans convention in Java — private fields, public getters and setters, and a no-arg constructor — with the Clase 8 JavaBeans exercise as a working example."
+---
+
+A **JavaBean** is a plain Java class that follows a well-known set of conventions so that tools — IDEs, frameworks like Spring and JPA, serialization libraries, and visual builders — can inspect and manipulate its properties automatically, without needing custom code for every class. The specification is simple, but its impact is enormous: almost every Java framework you will encounter relies on it.
+
+---
+
+## The Three Rules of JavaBeans
+
+<Steps>
+  <Step title="No-arg constructor (mandatory)">
+    The class must expose a public constructor that takes **no arguments**. Frameworks use this to instantiate objects reflectively, before setting any properties.
+
+    ```java title="persona.java — no-arg constructor"
+    public persona() {
+        // Required by the JavaBeans spec — leave it empty if needed
+    }
+    ```
+  </Step>
+
+  <Step title="Private fields">
+    All instance variables must be declared `private`. This enforces encapsulation — outside code cannot read or write the raw field directly.
+
+    ```java title="persona.java — private fields"
+    private String nombre;
+    private String apellido;
+    ```
+  </Step>
+
+  <Step title="Public getters and setters">
+    Each private field is exposed through a pair of public accessor methods named `getFieldName()` and `setFieldName(value)`. For `boolean` fields, the getter is conventionally named `isFieldName()`.
+
+    ```java title="persona.java — accessors"
+    public String getNombre() {
+        return nombre;
+    }
+
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## The Clase 8 JavaBean in Action
+
+### 8.1 — Creating the JavaBean
+
+The full `persona` class from Clase 8 satisfies all three rules and also implements `Serializable`, which allows instances to be converted to a byte stream for storage or network transfer.
+
+```java title="persona.java"
+package domain;
+
+import java.io.Serializable;
+
+public class persona implements Serializable {
+    private String nombre;
+    private String apellido;
+
+    // Rule 1 — mandatory no-arg constructor
+    public persona() {
+    }
+
+    // Convenience constructor (optional, not part of the spec)
+    public persona(String nombre, String apellido) {
+        this.nombre = nombre;
+        this.apellido = apellido;
+    }
+
+    // Rule 3 — public getter
+    public String getNombre() {
+        return nombre;
+    }
+
+    // Rule 3 — public setter
+    public void setNombre(String nombre) {
+        this.nombre = nombre;
+    }
+
+    public String getApellido() {
+        return apellido;
+    }
+
+    public void setApellido(String apellido) {
+        this.apellido = apellido;
+    }
+
+    @Override
+    public String toString() {
+        return "persona{" + "nombre=" + nombre + ", apellido=" + apellido + '}';
+    }
+}
+```
+
+### 8.2 — Testing the JavaBean
+
+The test class instantiates `Persona` with the no-arg constructor, then populates it through setters — exactly the pattern frameworks like Spring use internally.
+
+```java title="TestJavaBeans.java"
+package test;
+
+import domain.Persona;
+
+public class TestJavaBeans {
+    public static void main(String[] args) {
+        // Instantiate with the no-arg constructor
+        Persona persona = new Persona();
+
+        // Set values through public setters
+        persona.setNombre("Juan");
+        persona.setApellido("Perez");
+
+        // toString() gives a readable summary
+        System.out.println("persona = " + persona);
+
+        // Read values through public getters
+        System.out.println("Persona nombre: "   + persona.getNombre());
+        System.out.println("Persona apellido: " + persona.getApellido());
+    }
+}
+```
+
+**Expected output:**
+```
+persona = persona{nombre=Juan, apellido=Perez}
+Persona nombre: Juan
+Persona apellido: Perez
+```
+
+---
+
+## Why Frameworks Depend on JavaBeans
+
+<Note>
+  Frameworks like **Spring**, **JPA/Hibernate**, and **Jakarta EE** rely on the JavaBeans convention at their core:
+
+  - **Spring** uses setters (or constructors) for dependency injection and maps HTTP form fields to bean properties automatically.
+  - **JPA/Hibernate** needs a no-arg constructor to instantiate entity objects when loading rows from the database, then calls setters to populate each column value.
+  - **Java serialization** (`ObjectOutputStream`) relies on `Serializable` together with the no-arg constructor so objects can be reconstructed after being read from a stream.
+
+  Breaking any of the three rules — even accidentally — can cause subtle runtime failures in these frameworks.
+</Note>
+
+---
+
+## IDE Code Generation
+
+<Tip>
+  You never need to write getters and setters by hand. In **IntelliJ IDEA**, right-click inside the class body → *Generate* → *Getter and Setter* (or press `Alt + Insert`). In **Eclipse** or **VS Code with the Java extension**, look for *Source → Generate Getters and Setters*. The IDE reads your private fields and produces spec-compliant accessor methods in seconds.
+</Tip>

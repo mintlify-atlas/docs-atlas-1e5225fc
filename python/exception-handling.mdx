@@ -1,0 +1,153 @@
+---
+title: "Python Exception Handling: try, except, else, finally, and Custom Exceptions"
+sidebarTitle: "Exceptions"
+description: "Handle errors in Python using try-except blocks, process specific exception types, use else and finally clauses, and create custom exception classes — from Clase 1."
+---
+
+Python uses a **runtime exception model**: when something goes wrong, the interpreter raises an exception object that travels up the call stack until it is caught or the program terminates. Unlike Java, Python draws no formal line between checked and unchecked exceptions — every exception is simply a subclass of `BaseException`, and you decide which ones to handle. The result is a leaner syntax, but it puts the responsibility on you to be precise about _which_ errors you expect.
+
+<Steps>
+
+## Basic try-except
+
+The simplest guard is a bare `try / except` block that catches _any_ exception through the root `Exception` class. The variable after `as` gives you access to the exception message.
+
+<CodeGroup>
+
+```python 1.1 - Manejo de errores
+try:
+    10 / 0
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+```
+
+```python 1.2 - Procesamiento de excepciones
+resultado = None
+a = '10'
+b = 0
+
+try:
+    resultado = a / b   # TypeError: can't divide str by int
+except Exception as e:
+    print(f'Ocurrio un error: {e}')
+
+print(f'El resultado es: {resultado}')
+print('seguimos...')
+```
+
+</CodeGroup>
+
+Notice that execution continues after the `except` block — `print('seguimos...')` always runs because the exception was caught and the program did not crash.
+
+<Note>
+Catching bare `Exception` as a permanent solution is an anti-pattern. It silences errors you did not anticipate (such as `KeyboardInterrupt` bubbling up from nested code) and makes debugging much harder. Treat it as a last-resort catch-all, not a first line of defence.
+</Note>
+
+## Catching Specific Exception Types
+
+Python evaluates `except` clauses from top to bottom and stops at the first match. Ordering matters: put the most specific types first and leave a generic fallback at the bottom only if you truly need it.
+
+```python 1.4 - Múltiples except
+resultado = None
+
+try:
+    a = int(input("Digite el primer numero: "))
+    b = int(input("Digite el segundo numero: "))
+    resultado = a / b
+except TypeError as e:
+    print(f"TypeError - Ocurrio un error: {type(e)}")
+except ZeroDivisionError as e:
+    print(f"ZeroDivisionError - Ocurrio un error: {type(e)}")
+except Exception as e:
+    print(f"Exception - Ocurrio un error: {type(e)}")
+
+print(f"El resultado es: {resultado}")
+print("seguimos... ")
+```
+
+Common built-in exception types you will encounter in everyday Python code:
+
+| Exception | When it is raised |
+|---|---|
+| `ValueError` | Right type, wrong value (e.g. `int("abc")`) |
+| `TypeError` | Operation applied to wrong type |
+| `ZeroDivisionError` | Division or modulo by zero |
+| `FileNotFoundError` | File does not exist |
+| `IndexError` | Sequence index out of range |
+| `KeyError` | Dict key not present |
+| `AttributeError` | Object has no such attribute |
+
+<Tip>
+Naming your exceptions precisely is a form of self-documentation. A function signature that declares `except ZeroDivisionError` tells every reader exactly which failure mode it handles — no need to read the implementation details.
+</Tip>
+
+## else and finally Clauses
+
+Two optional clauses extend the `try / except` structure:
+
+- **`else`** runs only when _no_ exception was raised inside the `try` block. Use it for code that should run on the happy path but does not belong inside the `try` itself.
+- **`finally`** runs unconditionally — whether an exception was raised, caught, or never happened at all. Use it for cleanup (closing files, releasing locks, etc.).
+
+```python 1.5 - else y finally
+from NumerosIgualesException import NumerosIgualesException
+
+resultado = None
+
+try:
+    a = int(input('Digite el primer número: '))
+    b = int(input('Digite el segundo número: '))
+
+    if a == b:
+        raise NumerosIgualesException('Son números iguales')
+
+    resultado = a / b
+
+except TypeError as e:
+    print(f'TypeError - Ocurrió un error: {type(e)}')
+except ZeroDivisionError as e:
+    print(f'ZeroDivisionError - Ocurrió un error: {type(e)}')
+except Exception as e:
+    print(f'Exception - Ocurrió un error: {type(e)}')
+else:
+    print("No se arrojó ninguna excepción")
+finally:                                         # Siempre se va a ejecutar
+    print("Ejecución de este bloque finally")
+
+print(f'El resultado es: {resultado}')
+print('seguimos...')
+```
+
+The `raise` keyword here manually throws a custom exception before the division happens — covered in detail in the next section.
+
+## Custom Exception Classes
+
+You can create domain-specific exception types by subclassing `Exception`. Give the class an `__init__` that stores a human-readable message so callers can inspect it programmatically.
+
+<CodeGroup>
+
+```python NumerosIgualesException.py
+class NumerosIgualesException(Exception):   # Extiende de la clase Exception
+    def __init__(self, mensaje):
+        self.message = mensaje
+```
+
+```python raising the custom exception
+from NumerosIgualesException import NumerosIgualesException
+
+a = int(input('Digite el primer número: '))
+b = int(input('Digite el segundo número: '))
+
+if a == b:
+    raise NumerosIgualesException('Son números iguales')
+```
+
+</CodeGroup>
+
+Key points about custom exceptions:
+
+- **Always extend `Exception`** (not `BaseException`) so the class plays nicely with generic `except Exception` fallbacks.
+- Store the message in `self.message` (or call `super().__init__(mensaje)` to let the base class handle it).
+- Use `raise` to throw the exception from anywhere — it immediately interrupts normal flow.
+- Custom exceptions make your error hierarchy self-explanatory and let callers catch only the errors your library produces.
+
+</Steps>

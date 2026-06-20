@@ -1,0 +1,210 @@
+---
+title: "Connecting to PostgreSQL with psycopg2 in Python"
+sidebarTitle: "psycopg2 Basics"
+description: "Install psycopg2, open a connection to a PostgreSQL database, execute queries with a cursor, fetch results using fetchall() and fetchone(), and close connections safely."
+---
+
+`psycopg2` is the most widely used PostgreSQL adapter for Python. It implements the DB-API 2.0 specification and gives you a clean, Pythonic interface to open connections, execute SQL, and retrieve results. Whether you are building a small script or a production-grade API, psycopg2 is the de-facto standard for talking to PostgreSQL from Python.
+
+---
+
+## Installing psycopg2
+
+Install the package from PyPI before writing any connection code:
+
+```bash
+pip install psycopg2
+```
+
+> If you run into binary dependency errors on Linux, install the standalone binary wheel instead:
+> ```bash
+> pip install psycopg2-binary
+> ```
+
+---
+
+## Creating a Connection
+
+Use `psycopg2.connect()` and pass your database credentials as keyword arguments. The example below uses the `test_bd` database running on localhost:
+
+```python title="connection.py"
+import psycopg2  # Esto es para poder conectarnos a Postgre
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+```
+
+<Note>
+  Never hardcode passwords in production code. Store sensitive credentials in
+  environment variables and read them with `os.getenv('DB_PASSWORD')`. This
+  keeps secrets out of version control and makes your code portable across
+  environments.
+</Note>
+
+---
+
+## Creating a Cursor and Executing a SELECT Query
+
+Once you have a connection object, create a **cursor** — the object you use to send SQL statements to the database and retrieve results:
+
+```python title="cursor_fetchall.py"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+
+cursor = conexion.cursor()
+sentencia = 'SELECT * FROM persona'
+cursor.execute(sentencia)       # Execute the statement
+registros = cursor.fetchall()   # Retrieve all rows as a list of tuples
+print(registros)
+
+cursor.close()
+conexion.close()
+```
+
+`cursor.execute()` sends the SQL to the server. The results are not automatically downloaded — you must call a fetch method to pull them into Python.
+
+---
+
+## fetchone() vs fetchall()
+
+psycopg2 offers two primary fetch methods. Choose the one that fits the expected result size:
+
+<CodeGroup>
+
+```python title="fetchone — single row"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'SELECT * FROM persona WHERE id_persona = %s'  # Placeholder
+            id_persona = input('Digite un numero para el id_persona: ')
+            cursor.execute(sentencia, (id_persona,))
+            registros = cursor.fetchone()  # Returns a single tuple, or None
+            print(registros)
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+
+# https://www.psycopg.org/docs/usage.html
+```
+
+```python title="fetchall — multiple rows"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'SELECT * FROM persona WHERE id_persona IN %s'  # Placeholder
+            entrada = input('Digite los id_persona a buscar (separados por coma): ')
+            llaves_primarias = (tuple(entrada.split(', ')),)
+            cursor.execute(sentencia, llaves_primarias)
+            registros = cursor.fetchall()  # Returns a list of tuples
+            for registro in registros:
+                print(registro)
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+</CodeGroup>
+
+| Method | Returns | Best used when |
+|---|---|---|
+| `fetchone()` | A single tuple, or `None` | You expect exactly one row (e.g., lookup by primary key) |
+| `fetchall()` | A list of tuples | You need all matching rows at once |
+
+---
+
+## Closing the Connection
+
+Always release the connection and cursor when you are done. There are two ways to do this:
+
+<CodeGroup>
+
+```python title="Explicit close()"
+import psycopg2
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+
+cursor = conexion.cursor()
+sentencia = 'SELECT * FROM persona'
+cursor.execute(sentencia)
+registros = cursor.fetchall()
+print(registros)
+
+cursor.close()    # Release the cursor first
+conexion.close()  # Then release the connection
+```
+
+```python title="with statement (recommended)"
+import psycopg2  # Esto es para poder conectarnos a Postgre
+
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'SELECT * FROM persona'  # Placeholder
+            cursor.execute(sentencia)
+            registros = cursor.fetchall()
+            print(registros)
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+
+# https://www.psycopg.org/docs/usage.html
+```
+
+</CodeGroup>
+
+Using the `with` statement as a context manager on the **cursor** ensures it is closed automatically when the block exits, even if an exception is raised. The outer `try / finally` guarantees the connection is always closed.
+
+<Note>
+  Note that `with conexion:` (the connection as a context manager) controls the
+  **transaction**, not the connection lifetime. You still need to call
+  `conexion.close()` explicitly in the `finally` block to return the connection
+  to the operating system. See the
+  [psycopg2 usage docs](https://www.psycopg.org/docs/usage.html) for full
+  details.
+</Note>

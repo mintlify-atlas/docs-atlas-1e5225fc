@@ -1,0 +1,137 @@
+---
+title: "Repository Structure and File Naming Conventions"
+sidebarTitle: "Repo Structure"
+description: "How the Print-Estoy-Cansado-Jefe repository is organized by language and lesson, including file naming patterns and IntelliJ project layout."
+---
+
+The **Print-Estoy-Cansado-Jefe-TercerSemestre** repository is organized at the top level into three language directories — `Java/`, `Python/`, and `Javascript/` — plus a project metadata file and a README. Each language directory is further divided into numbered lesson folders (`Clase N/`), and JavaScript additionally includes a dedicated games area folder. This structure makes it straightforward to locate any lecture's code by language and lesson number.
+
+---
+
+## Directory Tree
+
+```text
+Print-Estoy-Cansado-Jefe-TercerSemestre/
+├── Java/
+│   ├── Clase 1/          # Inheritance: parent/child classes, first hierarchy
+│   ├── Clase 2/          # Enums, varargs, static members
+│   ├── Clase 3/          # Access modifiers, method overriding
+│   ├── Clase 4/          # Polymorphism
+│   ├── Clase 5/          # Casting, Object class, abstract classes
+│   ├── Clase 7/          # Interfaces
+│   ├── Clase 8/          # JavaBeans conventions
+│   ├── Clase 9/          # Exception handling in Java
+│   └── Clase 10/         # Console application capstone (UML + implementation)
+│
+├── Python/
+│   ├── Clase 1/          # Exception handling fundamentals
+│   ├── Clase 2/          # File I/O
+│   ├── Clase 3/          # Advanced file processing
+│   ├── Clase 4/          # psycopg2: connecting to PostgreSQL
+│   ├── Clase 5/          # psycopg2: CRUD operations
+│   ├── Clase 6/          # Transaction management with psycopg2
+│   ├── Clase 7/          # Logging (+ UML diagram .uxf)
+│   ├── Clase 8/          # DAO pattern: Persona class and PersonaDAO
+│   └── Clase 9/          # Connection pooling
+│
+├── Javascript/
+│   ├── Clase 1/          # OOP in JS: MundoPC example
+│   ├── Clase 2/          # Strict mode, prototype-based OOP
+│   ├── Clase 3/          # Polymorphism, instanceof
+│   ├── Clase 4/          # Arrow functions and OOP patterns
+│   ├── Clase 5/          # Callbacks
+│   ├── Clase 6/          # setTimeout, setInterval, live clock project
+│   ├── Practica JS/      # Standalone JS practice exercises
+│   └── Area Juegos - Clase 1/
+│       ├── NReinas/              # N-Queens solver
+│       ├── NReinas.js            # N-Queens standalone script
+│       ├── Torres de Hanoi/      # Towers of Hanoi
+│       ├── piedraPapelTijeras/   # Rock-Paper-Scissors
+│       ├── piedraPapelTijeras.html
+│       ├── Salto del Caballo/    # Knight's Tour
+│       └── Juego de Avatar/      # Avatar browser game
+│
+├── Print-Estoy-Cansado-Jefe-TercerSemestre.iml   # IntelliJ IDEA project file
+└── README.md
+```
+
+---
+
+## File Naming Convention
+
+Files inside each `Clase N/` folder follow a consistent numbered naming pattern:
+
+```text
+<lesson>.<segment> <Descriptive Title>.<extension>
+```
+
+For example:
+
+- `1.1 Creamos la clase padre DispositivoEntrada.java` — Lesson 1, segment 1
+- `1.2 Creamos la clase hija Raton.java` — Lesson 1, segment 2
+- `5.5 Clases Abstractas (abstract) Parte 1 y Parte 2.java` — Lesson 5, segment 5
+- `10.3 Creamos el Menu Parte 1.java` — Lesson 10, segment 3
+
+The **first number** matches the lesson (class) folder (`Clase N`), and the **second number** matches the order within that lesson, corresponding to individual lecture video segments. When a topic spans multiple parts, the filename includes "Parte 1", "Parte 2", etc., and may be combined into a single file covering both parts.
+
+<Tip>
+  Use the segment numbers to navigate content sequentially. If you are watching lecture video segment 5.3, open the file whose name starts with `5.3` inside `Clase 5/`. The numbering is consistent across all three languages.
+</Tip>
+
+---
+
+## Java: `/Java/Clase N/`
+
+The Java section spans **10 lesson folders** (`Clase 1` through `Clase 10`, with `Clase 6` living inside `Clase 7` materials). All source files use the `.java` extension. Some lessons include `.uxf` UML diagram files created with UMLet.
+
+Key characteristics:
+- Each `.java` file is typically a self-contained class or a small set of related classes introduced in that video segment.
+- Lesson 10 opens with a `.uxf` UML diagram (`10.1 UML y Introducción a la aplicación de Listar Personas.uxf`) before the implementation files, illustrating the design-first approach for the capstone application.
+- Files covering multiple video parts (e.g., "Parte 1 y 2") consolidate related segments into one file for convenience.
+
+---
+
+## Python: `/Python/Clase N/`
+
+The Python section spans **9 lesson folders** (`Clase 1` through `Clase 9`). All source files use the `.py` extension. Lesson 7 also contains a `.uxf` UML diagram for a DAO design task.
+
+Key characteristics:
+- Lesson 4 is a transition point: it introduces `psycopg2` and direct PostgreSQL connectivity, shifting from pure Python OOP to database-integrated programming.
+- Lessons 5 and 6 build CRUD (Create, Read, Update, Delete) operations and transaction management on top of the connection established in Lesson 4.
+- Lessons 7–9 add production concerns: structured logging, the DAO design pattern (`PersonaDAO`), and connection pooling.
+- Some filenames use underscores instead of spaces (e.g., `5.3_FuncionFetchAllParte2.py`), reflecting contributions from different team members — both conventions are valid.
+
+---
+
+## JavaScript: `/Javascript/Clase N/` and the Games Area
+
+The JavaScript section has **6 lesson folders** plus two additional areas:
+
+| Folder | Contents |
+|---|---|
+| `Clase 1/` | MundoPC OOP example in JS |
+| `Clase 2/` | Strict mode, prototype OOP |
+| `Clase 3/` | Polymorphism, `instanceof` checks |
+| `Clase 4/` | Arrow functions |
+| `Clase 5/` | Callback functions |
+| `Clase 6/` | `setTimeout`, `setInterval`, live clock (Tarea Especial - Reloj) |
+| `Practica JS/` | Standalone exercises and practice scripts |
+| `Area Juegos - Clase 1/` | Complete game and UI projects (see below) |
+
+The **`Area Juegos - Clase 1/`** folder contains fully implemented browser and scripting projects that apply the OOP and JavaScript skills learned in the lesson classes:
+
+- **NReinas** — N-Queens problem solver
+- **Torres de Hanoi** — Towers of Hanoi simulation
+- **piedraPapelTijeras** — Rock-Paper-Scissors game (includes an `.html` entry point)
+- **Salto del Caballo** — Knight's Tour algorithm
+- **Juego de Avatar** — Avatar-based browser game
+
+---
+
+## Special File Types
+
+<Note>
+  **`.iml` files** (e.g., `Print-Estoy-Cansado-Jefe-TercerSemestre.iml`) are **IntelliJ IDEA module files**. They store IDE-specific project configuration such as module dependencies, source roots, and SDK settings. These files are auto-generated by IntelliJ IDEA and are required if you open the project in that IDE. You can safely ignore them if you are using a different editor like VS Code or PyCharm.
+
+  **`.uxf` files** (e.g., `10.1 UML y Introducción a la aplicación de Listar Personas.uxf`, `7.1 UML Python.uxf`) are **UMLet diagram files**. UMLet is a free, open-source UML tool. These files contain the class diagrams, relationships, and architecture notes that accompany specific lessons. To open them, use [UMLet](https://www.umlet.com/) or the UMLet plugin available for IntelliJ IDEA and VS Code.
+</Note>

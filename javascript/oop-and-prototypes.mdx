@@ -1,0 +1,343 @@
+---
+title: "JavaScript OOP: Classes, Inheritance, and Polymorphism"
+sidebarTitle: "OOP & Classes"
+description: "Build object-oriented JavaScript using ES6 class syntax, extend classes with inheritance, apply polymorphism, check types with instanceof, and handle errors with try-catch — from Clases 1–4."
+---
+
+JavaScript classes are **syntactic sugar over prototypes** — under the hood, the engine still uses the prototype chain that has always powered the language, but the `class` keyword gives you a familiar, Java-style surface for defining blueprints, constructors, and methods. If you come from a Java or C# background you will feel right at home: you get `class`, `extends`, `super`, method overriding, and static fields, all with clean, readable syntax.
+
+<Note>
+  Class syntax requires **ES6 (ES2015) or later**. All modern browsers support it natively. If you need to target older environments, transpile your code with [Babel](https://babeljs.io/) or bundle it with [esbuild](https://esbuild.github.io/).
+</Note>
+
+---
+
+## Strict Mode
+
+Before diving into classes, it is important to understand **strict mode**. Adding `"use strict"` at the top of a file (or inside a function) activates a restricted variant of JavaScript that catches common mistakes at runtime instead of silently ignoring them.
+
+What strict mode **prevents**, among other things:
+- Using undeclared variables (`x = 10` without `let`/`const`/`var` throws a `ReferenceError`)
+- Deleting variables or function names
+- Duplicate parameter names
+- Writing to read-only properties
+
+```javascript 02-ModoStrict.js
+"use strict";
+
+let x = 10;
+console.log(x);
+
+miFuncion();
+
+function miFuncion() {
+    "use strict"
+    let y = 10;
+    console.log(10);
+}
+```
+
+<Note>
+  ES6 **class bodies** are always in strict mode automatically — you do not need to add `"use strict"` inside a class definition.
+</Note>
+
+---
+
+## Defining Classes
+
+Use the `class` keyword, a `constructor` method, and regular methods to define a blueprint for objects.
+
+```javascript 02-POO.js
+class Empleado {
+    constructor(nombre, sueldo) {
+        this._nombre = nombre;
+        this._sueldo = sueldo;
+    }
+
+    obtenerDetalles() {
+        return `Empleado: nombre: ${this._nombre},
+        Sueldo: ${this._sueldo}`;
+    }
+}
+
+let empleado1 = new Empleado("Juan", 3000);
+console.log(empleado1); // Empleado object
+```
+
+### Getters, Setters, and Static Fields
+
+Real-world classes protect their internal state with **getters** and **setters**, and track shared data across all instances with **static fields**.
+
+```javascript MundoPC.js — DispositivoEntrada base class
+class DispositivoEntrada {
+    constructor(tipoEntrada, marca) {
+        this._tipoEntrada = tipoEntrada;
+        this._marca = marca;
+    }
+
+    // Getter para tipoEntrada
+    get tipoEntrada() {
+        return this._tipoEntrada;
+    }
+    // Setter para tipoEntrada
+    set tipoEntrada(tipoEntrada) {
+        this._tipoEntrada = tipoEntrada;
+    }
+    // Getter para marca
+    get marca() {
+        return this._marca;
+    }
+    // Setter para marca
+    set marca(marca) {
+        this._marca = marca;
+    }
+}
+```
+
+A static counter field is incremented each time a new instance is created, giving every object a unique auto-generated ID:
+
+```javascript MundoPC.js — Monitor with static counter
+class Monitor {
+    static contadorMonitores = 0;
+
+    constructor(marca, tamanio) {
+        this._idMonitor = ++Monitor.contadorMonitores;
+        this._marca = marca;
+        this._tamanio = tamanio;
+    }
+
+    get idMonitor() {
+        return this._idMonitor;
+    }
+
+    toString() {
+        return `Monitor: [idMonitor: ${this._idMonitor}, marca: ${this._marca}, tamaño: ${this._tamanio}]`;
+    }
+}
+
+let monitor1 = new Monitor('HP', 15);
+let monitor2 = new Monitor('Dell', 27);
+console.log(monitor1.toString()); // Monitor: [idMonitor: 1, marca: HP, tamaño: 15]
+console.log(monitor2.toString()); // Monitor: [idMonitor: 2, marca: Dell, tamaño: 27]
+```
+
+---
+
+## Inheritance
+
+Use `extends` to create a subclass and `super()` inside the child constructor to call the parent's constructor. You can also call `super.method()` to invoke the parent's implementation of an overridden method.
+
+<Steps>
+  <Step title="Create the base class">
+    Define `Empleado` with a constructor and a `obtenerDetalles()` method.
+
+    ```javascript 03-POO.js — base class
+    class Empleado {
+        constructor(nombre, sueldo) {
+            this._nombre = nombre;
+            this._sueldo = sueldo;
+        }
+
+        obtenerDetalles() {
+            return `Empleado: nombre: ${this._nombre},
+        Sueldo: ${this._sueldo}`;
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Extend with a subclass">
+    `Gerente` extends `Empleado`, adding a `_departamento` property and overriding `obtenerDetalles()` to include it. Notice `super(nombre, sueldo)` delegates the shared initialisation upward.
+
+    ```javascript 03-POO.js — Gerente subclass
+    class Gerente extends Empleado {
+        constructor(nombre, sueldo, departamento) {
+            super(nombre, sueldo);           // calls Empleado's constructor
+            this._departamento = departamento;
+        }
+
+        // Method override — also calls parent via super.obtenerDetalles()
+        obtenerDetalles() {
+            return `Gerente: ${super.obtenerDetalles()} depto: ${this._departamento}`;
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Instantiate and call methods">
+    Both objects share the same `obtenerDetalles()` name but produce different output, demonstrating **method overriding**.
+
+    ```javascript 03-POO.js — instantiation
+    let gerente1 = new Gerente("Carlos", 5000, "Sistemas");
+    let empleado1 = new Empleado("Juan", 3000);
+
+    console.log(gerente1.obtenerDetalles());
+    // Gerente: Empleado: nombre: Carlos, Sueldo: 5000 depto: Sistemas
+
+    console.log(empleado1.obtenerDetalles());
+    // Empleado: nombre: Juan, Sueldo: 3000
+    ```
+  </Step>
+
+  <Step title="Use a polymorphic helper function">
+    A standalone function that accepts any object with `obtenerDetalles()` works for both types — this is polymorphism in action.
+
+    ```javascript 03-POO.js — polymorphic function
+    function imprimir(tipo) {
+        console.log(tipo.obtenerDetalles());
+    }
+
+    imprimir(gerente1);   // prints Gerente details
+    imprimir(empleado1);  // prints Empleado details
+    ```
+  </Step>
+</Steps>
+
+### Inheritance in the MundoPC Project
+
+The `MundoPC` project shows a deeper hierarchy: `Raton` and `Teclado` both extend `DispositivoEntrada`, and `Computadora` **composes** all the devices together (composition over inheritance when a "has-a" relationship is more fitting).
+
+```javascript 3.3-mundoPC-Polimorfismo.js — Raton inherits DispositivoEntrada
+class Raton extends DispositivoEntrada {
+    static contadorRatones = 0;
+
+    constructor(tipoEntrada, marca) {
+        super(tipoEntrada, marca);
+        this._idRaton = ++Raton.contadorRatones;
+    }
+
+    get idRaton() {
+        return this._idRaton;
+    }
+
+    toString() {
+        return `Raton: [idRaton: ${this._idRaton}, tipoEntrada: ${this.tipoEntrada}, marca: ${this.marca}]`;
+    }
+}
+
+let raton1 = new Raton('USB', 'HP');
+console.log(raton1.toString());
+// Raton: [idRaton: 1, tipoEntrada: USB, marca: HP]
+```
+
+---
+
+## Polymorphism and `instanceof`
+
+**Polymorphism** means different classes can expose the same interface (method names) and callers do not need to know which concrete type they are working with. In the example below, `probarDispositivo` calls `toString()` on any device object — it does not care whether it is a `Raton` or a `Monitor`.
+
+```javascript 3.3-mundoPC-Polimorfismo.js — polymorphic function
+function probarDispositivo(dispositivo) {
+    // Delegates toString() responsibility to the object itself.
+    // No need to check the specific type — just trust the interface.
+    console.log(dispositivo.toString());
+}
+
+probarDispositivo(raton1);    // Raton: [idRaton: 1, tipoEntrada: USB, marca: HP]
+probarDispositivo(monitor1);  // Monitor: [idMonitor: 1, marca: HP, tamaño: 15]
+```
+
+### Checking Types with `instanceof`
+
+When you **do** need to branch on the actual type, use `instanceof`. Because JavaScript class hierarchies mirror prototype chains, `instanceof` checks the entire chain — a `Gerente` is also an instance of `Empleado` and of `Object`.
+
+<Warning>
+  Always check the **most specific** class first. Because `Gerente instanceof Empleado` is `true`, placing the `Empleado` branch before `Gerente` would incorrectly match managers before reaching the `Gerente` branch.
+</Warning>
+
+```javascript 03-instanceof.js
+function imprimir(tipo) {
+    console.log(tipo.obtenerDetalles());
+
+    if (tipo instanceof Gerente) {
+        console.log("Es un objeto de tipo Gerente");
+        console.log(tipo._departamento);
+    }
+    else if (tipo instanceof Empleado) {
+        console.log("Es un objeto de tipo Empleado");
+        console.log(tipo._departamento); // undefined — does not exist in base class
+    }
+    else if (tipo instanceof Object) {
+        // Object is the root of all classes — this branch is a catch-all
+        console.log("Es de tipo Object");
+    }
+}
+
+imprimir(gerente1);
+imprimir(empleado1);
+```
+
+---
+
+## Error Handling: try-catch-finally and throw
+
+Robust programs anticipate failures. JavaScript provides a structured error-handling block with three clauses:
+
+| Clause    | When it runs |
+|-----------|--------------|
+| `try`     | Always — this is the guarded block |
+| `catch`   | Only when an error (or thrown value) is raised inside `try` |
+| `finally` | Always, even if `catch` re-throws |
+
+### Basic try-catch-finally
+
+```javascript 4.1 Bloque try catch y finally.js
+'use strict'
+
+try {
+    let x = 10;
+    miFuncion(); // miFuncion is not defined → throws ReferenceError
+}
+catch (error) {
+    console.log(error); // ReferenceError: miFuncion is not defined
+}
+finally {
+    console.log('Termina la revision de errores'); // always runs
+}
+
+// Execution continues normally after the try-catch-finally block
+console.log('Continuamos...');
+```
+
+### The `throw` Clause
+
+You can `throw` any value — a string, a number, or an `Error` object. Throwing an `Error` is preferred because it carries a `.name` and a `.message` property, which makes debugging easier.
+
+```javascript 4.2 Cláusula throw en JS.js
+'use strict'
+
+try {
+    let x = 10;
+    throw 'Mi Error'; // throwing a plain string
+}
+catch (error) {
+    console.log(typeof(error)); // "string"
+}
+finally {
+    console.log('Termina la revision de errores');
+}
+
+console.log('Continuamos...');
+
+// Throwing based on validation logic
+let resultado = -5;
+
+try {
+    if (isNaN(resultado))    throw 'No es un numero';
+    else if (resultado === '') throw 'Es cadena vacia';
+    else if (resultado >= 0)  throw 'Valor positivo';
+    else if (resultado <= 0)  throw 'Valor negativo';
+}
+catch (error) {
+    console.log(error);         // "Valor negativo"
+    console.log(error.name);    // undefined when throwing a string
+    console.log(error.message); // undefined when throwing a string
+}
+finally {
+    console.log('Termina la revision de errores 2');
+}
+```
+
+<Note>
+  When you `throw` a plain string, `error.name` and `error.message` will be `undefined`. Prefer `throw new Error('description')` to get a proper stack trace and those properties populated automatically.
+</Note>

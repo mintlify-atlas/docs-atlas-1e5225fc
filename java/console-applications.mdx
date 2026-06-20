@@ -1,0 +1,443 @@
+---
+title: "Building Java Console Applications with Scanner and Switch"
+sidebarTitle: "Console Apps"
+description: "Build interactive command-line menus in Java using Scanner for input, switch statements for dispatch, while loops for continuous interaction, and try-catch for validation — from Clase 9 and Clase 10."
+---
+
+Most real-world programs share the same skeleton: **read input → display a menu → dispatch to the right operation → repeat until the user quits**. Clase 9 and Clase 10 build this pattern from scratch — starting from a handful of hardcoded variables and ending with a fully refactored, exception-safe console application. Follow the evolution step by step.
+
+---
+
+## Clase 9: Building the Calculator App
+
+The `CalculadoraUTN` application accepts two numbers, performs an arithmetic operation chosen from a menu, and loops until the user selects *Salir* (Exit). Each lesson adds one layer of functionality.
+
+<Steps>
+
+  <Step title="Define variables and the entry point (9.2)">
+    The first version hardcodes the operands and prints a single result. There is no user interaction yet — but it establishes the class structure.
+
+    ```java title="CalculadoraUTN.java — 9.2"
+    public class CalculadoraUTN {
+        public static void main(String[] args) {
+            System.out.println("******* Aplicacion Calculadora *******");
+            var operando1 = 10;
+            var operando2 = 20;
+            var resultado = operando1 + operando2;
+            System.out.println("resultado = " + resultado);
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Add Scanner for live input (9.3)">
+    `Scanner` wraps `System.in` and lets us read lines the user types. `Integer.parseInt()` converts the raw `String` to an `int`.
+
+    ```java title="CalculadoraUTN.java — 9.3"
+    import java.util.Scanner;
+
+    public class CalculadoraUTN {
+        public static void main(String[] args) {
+            Scanner entrada = new Scanner(System.in);
+            System.out.println("******* Aplicacion Calculadora *******");
+            System.out.print("Digite el valor para el operando1: ");
+            var operando1 = Integer.parseInt(entrada.nextLine());
+            System.out.print("Digite el valor para el operando2: ");
+            var operando2 = Integer.parseInt(entrada.nextLine());
+            var resultado = operando1 + operando2;
+            System.out.println("resultado = " + resultado);
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Display the menu and read the operation (9.4)">
+    A **text block** (`"""..."""`) prints the menu cleanly. The chosen operation number gates whether operands are requested.
+
+    ```java title="CalculadoraUTN.java — 9.4"
+    import java.util.Scanner;
+
+    public class CalculadoraUTN {
+        public static void main(String[] args) {
+            Scanner entrada = new Scanner(System.in);
+            System.out.println("******* Aplicacion Calculadora *******");
+            System.out.println("""
+                    1. Suma
+                    2. Resta
+                    3. Multiplicacion
+                    4. Division
+                    5. Salir
+                    """);
+            System.out.print("Operacion a realizar? ");
+            var operacion = Integer.parseInt(entrada.nextLine());
+
+            if (operacion >= 1 && operacion <= 4) {
+                System.out.print("Digite el valor para el operando1: ");
+                var operando1 = Integer.parseInt(entrada.nextLine());
+                System.out.print("Digite el valor para el operando2: ");
+                var operando2 = Integer.parseInt(entrada.nextLine());
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Dispatch operations with a switch statement (9.5)">
+    The arrow-syntax `switch` (`case 1 -> { ... }`) dispatches each menu option without fall-through. A `default` branch handles any invalid input.
+
+    ```java title="CalculadoraUTN.java — 9.5 (switch excerpt)"
+    int resultado;
+    switch (operacion) {
+        case 1 -> {
+            resultado = operando1 + operando2;
+            System.out.println("Resultado de la suma: " + resultado);
+        }
+        case 2 -> {
+            resultado = operando1 - operando2;
+            System.out.println("Resultado de la resta: " + resultado);
+        }
+        case 3 -> {
+            resultado = operando1 * operando2;
+            System.out.println("Resultado de la multiplicacion: " + resultado);
+        }
+        case 4 -> {
+            resultado = operando1 / operando2;
+            System.out.println("Resultado de la division: " + resultado);
+        }
+        default -> System.out.println("Opcion erronea: " + operacion);
+    }
+    ```
+  </Step>
+
+  <Step title="Wrap everything in a while loop with break (9.6)">
+    `while(true)` makes the menu repeat indefinitely. When the user picks option 5, `break` exits the loop cleanly.
+
+    ```java title="CalculadoraUTN.java — 9.6"
+    import java.util.Scanner;
+
+    public class CalculadoraUTN {
+        public static void main(String[] args) {
+            Scanner entrada = new Scanner(System.in);
+            while (true) { // Infinite loop — broken by option 5
+                System.out.println("******* Aplicacion Calculadora *******");
+                System.out.println("""
+                        1. Suma
+                        2. Resta
+                        3. Multiplicacion
+                        4. Division
+                        5. Salir
+                        """);
+                System.out.print("Operacion a realizar? ");
+                var operacion = Integer.parseInt(entrada.nextLine());
+
+                if (operacion >= 1 && operacion <= 4) {
+                    // ... read operands and switch ...
+                } else if (operacion == 5) {
+                    System.out.print("Hasta pronto...");
+                    break; // Exit the while loop
+                } else {
+                    System.out.println("Opcion erronea: " + operacion);
+                }
+                System.out.println(); // Blank line before next iteration
+            }
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Add try-catch for input validation (9.7)">
+    If the user types a letter instead of a number, `Integer.parseInt()` throws a `NumberFormatException`. Wrapping the body of the loop in `try-catch` keeps the application alive.
+
+    ```java title="CalculadoraUTN.java — 9.7 (try-catch added)"
+    while (true) {
+        System.out.println("******* Aplicacion Calculadora *******");
+        // ... print menu ...
+        System.out.print("Operacion a realizar? ");
+        try {
+            var operacion = Integer.parseInt(entrada.nextLine());
+            if (operacion >= 1 && operacion <= 4) {
+                // ... read operands and switch ...
+            } else if (operacion == 5) {
+                System.out.print("Hasta pronto...");
+                break;
+            } else {
+                System.out.println("Opcion erronea: " + operacion);
+            }
+            System.out.println();
+        } catch (Exception e) {
+            System.out.println("Ocurrio un error: " + e.getMessage());
+            System.out.println();
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Extract mostrarMenu() for clean structure (9.8)">
+    Moving the menu-printing logic into a private static method reduces duplication and makes `main` easier to read.
+
+    ```java title="CalculadoraUTN.java — 9.8"
+    import java.util.Scanner;
+
+    public class CalculadoraUTN {
+        public static void main(String[] args) {
+            Scanner entrada = new Scanner(System.in);
+            while (true) {
+                System.out.println("******* Aplicacion Calculadora *******");
+                mostrarMenu(); // Delegate menu display to its own method
+                try {
+                    var operacion = Integer.parseInt(entrada.nextLine());
+                    // ... switch and break logic ...
+                    System.out.println();
+                } catch (Exception e) {
+                    System.out.println("Ocurrio un error: " + e.getMessage());
+                    System.out.println();
+                }
+            }
+        }
+
+        private static void mostrarMenu() {
+            System.out.println("""
+                        1. Suma
+                        2. Resta
+                        3. Multiplicacion
+                        4. Division
+                        5. Salir
+                        """);
+            System.out.print("Operacion a realizar? ");
+        }
+    }
+    ```
+  </Step>
+
+  <Step title="Extract ejecutarOperacion() — final refactored version (9.9)">
+    The fully refactored application separates all concerns into dedicated methods. The final version also upgrades operands from `int` to `double` to support decimal results.
+
+    ```java title="CalculadoraUTN.java — 9.9 (complete)"
+    import java.util.Scanner;
+
+    public class CalculadoraUTN {
+        public static void main(String[] args) {
+            Scanner entrada = new Scanner(System.in);
+            while (true) {
+                System.out.println("******* Aplicacion Calculadora *******");
+                mostrarMenu();
+                try {
+                    var operacion = Integer.parseInt(entrada.nextLine());
+                    if (operacion >= 1 && operacion <= 4) {
+                        ejecutarOperacion(operacion, entrada);
+                    } else if (operacion == 5) {
+                        System.out.print("Hasta pronto...");
+                        break;
+                    } else {
+                        System.out.println("Opcion erronea: " + operacion);
+                    }
+                    System.out.println();
+                } catch (Exception e) {
+                    System.out.println("Ocurrio un error: " + e.getMessage());
+                    System.out.println();
+                }
+            }
+        }
+
+        private static void mostrarMenu() {
+            System.out.println("""
+                        1. Suma
+                        2. Resta
+                        3. Multiplicacion
+                        4. Division
+                        5. Salir
+                        """);
+            System.out.print("Operacion a realizar? ");
+        }
+
+        private static void ejecutarOperacion(int operacion, Scanner entrada) {
+            System.out.print("Digite el valor para el operando1: ");
+            var operando1 = Double.parseDouble(entrada.nextLine());
+            System.out.print("Digite el valor para el operando2: ");
+            var operando2 = Double.parseDouble(entrada.nextLine());
+            double resultado;
+            switch (operacion) {
+                case 1 -> {
+                    resultado = operando1 + operando2;
+                    System.out.println("Resultado de la suma: " + resultado);
+                }
+                case 2 -> {
+                    resultado = operando1 - operando2;
+                    System.out.println("Resultado de la resta: " + resultado);
+                }
+                case 3 -> {
+                    resultado = operando1 * operando2;
+                    System.out.println("Resultado de la multiplicacion: " + resultado);
+                }
+                case 4 -> {
+                    resultado = operando1 / operando2;
+                    System.out.println("Resultado de la division: " + resultado);
+                }
+                default -> System.out.println("Opcion erronea: " + operacion);
+            }
+        }
+    }
+    ```
+  </Step>
+
+</Steps>
+
+<Tip>
+  Separating **menu display** (`mostrarMenu`) from **business logic** (`ejecutarOperacion`) is not just style — it's the foundation of clean architecture. Each method does exactly one thing, which makes unit testing, debugging, and future changes much simpler. If you later need to add a "Modulo" option, you touch only `mostrarMenu()` and `ejecutarOperacion()`, not `main`.
+</Tip>
+
+---
+
+## Clase 10: Persona CRUD Application
+
+Clase 10 applies the same console-app pattern to a more realistic scenario: managing a list of `Persona` objects in memory. It introduces `ArrayList`, constructor overloading, and a boolean flag instead of `break` for loop control.
+
+### The Persona Bean
+
+```java title="Persona.java"
+public class Persona {
+    private String nombre;
+    private String tel;
+    private String email;
+    private static int numeroPersonas = 0;
+
+    // No-arg constructor — auto-increments the ID
+    public Persona() {
+        this.id = ++Persona.numeroPersonas;
+    }
+
+    // Parameterized constructor (constructor overloading)
+    public Persona(String nombre, String tel, String email) {
+        this(); // Calls the no-arg constructor to set the ID
+        this.nombre = nombre;
+        this.tel = tel;
+        this.email = email;
+    }
+
+    public int getId()                { return id; }
+    public void setId(int id)         { this.id = id; }
+    public String getNombre()         { return nombre; }
+    public String getTel()            { return tel; }
+    public String getEmail()          { return email; }
+    public void setEmail(String email){ this.email = email; }
+
+    @Override
+    public String toString() {
+        return "Persona{" +
+            "id=" + id +
+            ", nombre='" + nombre + '\'' +
+            ", tel='" + tel + '\'' +
+            ", email='" + email + '\'' +
+            '}';
+    }
+}
+```
+
+### The ListadoPersona Application
+
+<CodeGroup>
+
+```java title="ListadoPersona.java — menu structure (10.3)"
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class ListadoPersona {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List<Persona> personas = new ArrayList<>(); // In-memory list
+        var salir = false;
+        while (!salir) {
+            mostrarMenu();
+            System.out.println();
+        }
+    }
+
+    private static void mostrarMenu() {
+        System.out.print("""
+            ******* Listado de Personas *******
+            1. Agregar
+            2. Listar
+            3. Salir
+            """);
+        System.out.print("Digite una de las opciones: ");
+    }
+}
+```
+
+```java title="ListadoPersona.java — with try-catch and ejecutarOperacion (10.4)"
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+public class ListadoPersona {
+    public static void main(String[] args) {
+        Scanner entrada = new Scanner(System.in);
+        List<Persona> personas = new ArrayList<>();
+        var salir = false;
+        while (!salir) {
+            mostrarMenu();
+            try {
+                salir = ejecutarOperacion(entrada, personas);
+            } catch (Exception e) {
+                System.out.println("Ocurrio un error: " + e.getMessage());
+            }
+            System.out.println();
+        }
+    }
+
+    private static void mostrarMenu() {
+        System.out.print("""
+            ******* Listado de Personas *******
+            1. Agregar
+            2. Listar
+            3. Salir
+            """);
+        System.out.print("Digite una de las opciones: ");
+    }
+
+    private static boolean ejecutarOperacion(Scanner entrada, List<Persona> personas) {
+        var opcion = Integer.parseInt(entrada.nextLine());
+        var salir = false;
+        switch (opcion) {
+            case 1 -> { // Add a new Persona
+                System.out.print("Digite el nombre: ");
+                var nombre = entrada.nextLine();
+                System.out.print("Digite el telefono: ");
+                var tel = entrada.nextLine();
+                System.out.print("Digite el correo: ");
+                var email = entrada.nextLine();
+                var persona = new Persona(nombre, tel, email);
+                personas.add(persona);
+                System.out.println("La lista tiene: " + personas.size() + " elementos");
+            }
+            case 2 -> { // List all personas
+                System.out.println("Listado de personas: ");
+                personas.forEach(System.out::println); // Method reference
+            }
+            case 3 -> { // Exit
+                System.out.println("Hasta pronto...");
+                salir = true;
+            }
+            default -> System.out.println("Opcion incorrecta: " + opcion);
+        }
+        return salir;
+    }
+}
+```
+
+</CodeGroup>
+
+### Key differences from Clase 9
+
+| Feature | Clase 9 (Calculator) | Clase 10 (Persona List) |
+|---|---|---|
+| Exit mechanism | `break` inside `while(true)` | `boolean salir` flag with `while(!salir)` |
+| Data storage | Local variables only | `List<Persona>` persists across loop iterations |
+| Operation method return type | `void` | `boolean` (signals whether to exit) |
+| Object creation | Primitive arithmetic only | Instantiates `Persona` objects |
+| List iteration | N/A | `personas.forEach(System.out::println)` |
+
+<Note>
+  The `personas.forEach(System.out::println)` call on the list uses a **method reference** — a shorthand for `personas.forEach((p) -> System.out.println(p))`. It calls `toString()` on each `Persona` automatically, which is why overriding `toString()` in the bean matters.
+</Note>

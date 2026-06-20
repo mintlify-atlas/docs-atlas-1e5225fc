@@ -1,0 +1,367 @@
+---
+title: "Python Logging: Structured Application Logs with the logging Module"
+sidebarTitle: "Logging"
+description: "Configure Python's built-in logging module to write structured log messages at different severity levels, set up file and console handlers, and use a logger in class-based applications."
+---
+
+When a script crashes at 2 a.m. on a production server, `print()` won't save you — its output is gone the moment the process exits. Python's built-in `logging` module writes timestamped, severity-labeled messages to any combination of files and consoles, and lets you filter them by importance without changing a single line of application code.
+
+Replacing `print()` with `logging` gives you:
+
+- **Severity levels** — distinguish a debug trace from a fatal crash at a glance
+- **Persistent file output** — inspect logs after the fact without re-running the program
+- **Structured format** — timestamp, level, file name, and line number in every message
+- **Zero-cost filtering** — set the level to `WARNING` in production and all `DEBUG`/`INFO` messages are suppressed at virtually no runtime cost
+
+<Note>
+**Stop using `print()` in production code.** `print()` has no severity, no timestamp, no file output, and no way to silence it selectively. Treat any `print()` call in application code as a code smell — replace it with the appropriate `log.debug()`, `log.info()`, or `log.error()` call.
+</Note>
+
+---
+
+## Logging Basics
+
+The simplest possible setup calls `logging.basicConfig()` before the first log statement. This configures the **root logger** — the default logger that all module-level `logging.X()` calls use.
+
+```python 7.2 Manejo de Logging.py
+import logging as log
+
+# Llamamos una configuración básica
+if __name__ == '__main__':
+    log.basicConfig(level=log.DEBUG)
+    log.debug('Mensaje a nivel debug')
+    log.info('Mensaje a nivel info')
+    log.warning('Mensaje a nivel warning')
+    log.error('Mensaje a nivel error')
+    log.critical('Mensaje a nivel critical')
+```
+
+Running this produces output similar to:
+
+```
+DEBUG:root:Mensaje a nivel debug
+INFO:root:Mensaje a nivel info
+WARNING:root:Mensaje a nivel warning
+ERROR:root:Mensaje a nivel error
+CRITICAL:root:Mensaje a nivel critical
+```
+
+### Log level reference
+
+| Level | Numeric value | When to use |
+|---|---|---|
+| `DEBUG` | 10 | Detailed diagnostic information — object states, variable values, flow tracing |
+| `INFO` | 20 | Confirmation that things are working as expected — successful connection, record inserted |
+| `WARNING` | 30 | Something unexpected happened but the program is still running — deprecated feature used, disk space low |
+| `ERROR` | 40 | A serious problem — a function failed and could not complete its task |
+| `CRITICAL` | 50 | A fatal error — the program cannot continue, or data corruption is imminent |
+
+Setting `level=log.DEBUG` means **all** levels are emitted. Setting `level=log.WARNING` silences `DEBUG` and `INFO` entirely, without touching any other code.
+
+---
+
+## Production-Ready Configuration — Handlers and Format
+
+The course's second logging exercise (`7.3`) adds a custom format string, a `datefmt`, and two handlers — one for the console and one for a persistent log file. This is the configuration pattern used throughout the DAO classes.
+
+```python 7.3 Manejo de logging Parte 2.py
+import logging as log
+
+# docs.python.org/3/howto/logging.html
+# Llamamos una configuración básica
+
+log.basicConfig(level=log.DEBUG,
+                format='%(asctime)s:%(levelname)s [%(filename)s:%(lineno)s] %(message)s',
+                datefmt='%I:%M:%S %p',
+                handlers=[
+                    log.FileHandler('capa_datos.log'),
+                    log.StreamHandler()
+                ])
+
+if __name__ == '__main__':
+    log.debug('Mensaje a nivel debug')
+    log.info('Mensaje a nivel info')
+    log.warning('Mensaje a nivel warning')
+    log.error('Mensaje a nivel error')
+    log.critical('Mensaje a nivel critical')
+```
+
+With this configuration every log line looks like:
+
+```
+02:47:13 PM:DEBUG [7.3 Manejo de logging Parte 2.py:15] Mensaje a nivel debug
+02:47:13 PM:INFO [7.3 Manejo de logging Parte 2.py:16] Mensaje a nivel info
+02:47:13 PM:WARNING [7.3 Manejo de logging Parte 2.py:17] Mensaje a nivel warning
+```
+
+### Format string fields
+
+| Placeholder | Description |
+|---|---|
+| `%(asctime)s` | Human-readable timestamp, formatted by `datefmt` |
+| `%(levelname)s` | Text severity label: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` |
+| `%(filename)s` | Source file where the log call was made |
+| `%(lineno)s` | Line number of the log call |
+| `%(message)s` | The message passed to `log.debug()` / `log.error()` etc. |
+
+### Handler breakdown
+
+<Accordion title="FileHandler('capa_datos.log')">
+Writes every log record to `capa_datos.log` in the current working directory. The file is created if it does not exist and appended to on subsequent runs — giving you a persistent history across multiple executions. Use `mode='w'` to start fresh each run: `log.FileHandler('capa_datos.log', mode='w')`.
+</Accordion>
+
+<Accordion title="StreamHandler()">
+Writes to `sys.stderr` by default (i.e., the terminal). Pass `stream=sys.stdout` to route output to standard out instead. Having both handlers means you see logs in real time in the terminal **and** they are saved to disk simultaneously.
+</Accordion>
+
+---
+
+## Using a Named Logger with `getLogger`
+
+Rather than always using the root logger, production code creates a **named logger** tied to the current module. The convention is `logging.getLogger(__name__)`, which gives each module its own logger whose name matches the module's fully-qualified path.
+
+```python logger_base.py
+import logging as log
+
+log.basicConfig(level=log.DEBUG,
+                format='%(asctime)s:%(levelname)s [%(filename)s:%(lineno)s] %(message)s',
+                datefmt='%I:%M:%S %p',
+                handlers=[
+                    log.FileHandler('capa_datos.log'),
+                    log.StreamHandler()
+                ])
+
+# Named logger — other modules import `log` from here
+log = log.getLogger(__name__)
+```
+
+Other modules then import this single configured `log` object rather than each configuring their own:
+
+```python any other module
+from logger_base import log
+
+log.debug('This message comes with the full format already configured')
+```
+
+This pattern — configure once in `logger_base.py`, import everywhere — is exactly what the course's `8.2_PruebaDeLaClasePersona.py` and the Clase 8 DAO files use.
+
+---
+
+## Logging in Class-Based Code
+
+The real payoff comes when you drop `log` calls into the DAO classes. Every database operation becomes traceable without adding any `print()` noise.
+
+<CodeGroup>
+```python conexion.py with logging
+import psycopg2 as bd
+from logger_base import log
+import sys
+
+class Conexion:
+    _DATABASE = 'test_bd'
+    _USERNAME = 'postgres'
+    _PASSWORD = 'admin'
+    _DB_PORT  = '5432'
+    _HOST     = '127.0.0.1'
+    _conexion = None
+    _cursor   = None
+
+    @classmethod
+    def obtenerConexion(cls):
+        if cls._conexion is None:
+            try:
+                cls._conexion = bd.connect(
+                    host=cls._HOST,
+                    user=cls._USERNAME,
+                    password=cls._PASSWORD,
+                    port=cls._DB_PORT,
+                    database=cls._DATABASE
+                )
+                log.debug(f'Conexión Exitosa: {cls._conexion}')
+                return cls._conexion
+            except Exception as e:
+                log.error(f'Ocurrió un error: {e}')
+                sys.exit()
+        else:
+            return cls._conexion
+
+    @classmethod
+    def obtenerCursor(cls):
+        if cls._cursor is None:
+            try:
+                cls._cursor = cls.obtenerConexion().cursor()
+                log.debug(f'Se abrió correctamente el cursor: {cls._cursor}')
+                return cls._cursor
+            except Exception as e:
+                log.error(f'Ocurrió un error: {e}')
+                sys.exit()
+        else:
+            return cls._cursor
+```
+
+```python persona_dao.py with logging
+from capa_datos_persona.Persona import Persona
+from capa_datos_persona.conexion import Conexion
+from logger_base import log
+
+class PersonaDAO:
+    _SELECCIONAR = 'SELECT * FROM persona ORDER BY id_persona'
+    _INSERTAR    = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
+    _ACTUALIZAR  = 'UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s'
+    _ELIMINAR    = 'DELETE FROM persona WHERE id_persona=%s'
+
+    @classmethod
+    def seleccionar(cls):
+        with Conexion.obtenerConexion():
+            with Conexion.obtenerCursor() as cursor:
+                cursor.execute(cls._SELECCIONAR)
+                registros = cursor.fetchall()
+                personas = []
+                for registro in registros:
+                    persona = Persona(registro[0], registro[1], registro[2], registro[3])
+                    personas.append(persona)
+                return personas
+
+    @classmethod
+    def insertar(cls, persona):
+        with Conexion.obtenerConexion():
+            with Conexion.obtenerCursor() as cursor:
+                valores = (persona.nombre, persona.apellido, persona.email)
+                cursor.execute(cls._INSERTAR, valores)
+                log.debug(f'Persona insertada: {persona}')
+                return cursor.rowcount
+
+    @classmethod
+    def actualizar(cls, persona):
+        with Conexion.obtenerConexion():
+            with Conexion.obtenerCursor() as cursor:
+                valores = (persona.nombre, persona.apellido, persona.email, persona.id_persona)
+                cursor.execute(cls._ACTUALIZAR, valores)
+                log.debug(f'Persona actualizada: {persona}')
+                return cursor.rowcount
+
+    @classmethod
+    def eliminar(cls, persona):
+        with Conexion.obtenerConexion():
+            with Conexion.obtenerCursor() as cursor:
+                valores = (persona.id_persona)
+                cursor.execute(cls._ELIMINAR, valores)
+                log.debug(f'Los objetos eliminados son: {persona}')
+                return cursor.rowcount
+```
+</CodeGroup>
+
+When `PersonaDAO.insertar()` succeeds you'll see a line like:
+
+```
+02:47:14 PM:DEBUG [persona_dao.py:28] Persona insertada: Persona(id=None, nombre='Ana', ...)
+```
+
+When `obtenerConexion()` fails (wrong password, database offline), you'll see:
+
+```
+02:47:14 PM:ERROR [conexion.py:22] Ocurrió un error: FATAL: password authentication failed for user "postgres"
+```
+
+---
+
+## Configuring the Log Level at Runtime
+
+<Tip>
+Set the log level via an environment variable so you can switch between `DEBUG` (development) and `WARNING` (production) without touching any source files:
+
+```python logger_base.py
+import logging as log
+import os
+
+level_name = os.getenv("LOG_LEVEL", "DEBUG").upper()
+level      = getattr(log, level_name, log.DEBUG)
+
+log.basicConfig(level=level,
+                format='%(asctime)s:%(levelname)s [%(filename)s:%(lineno)s] %(message)s',
+                datefmt='%I:%M:%S %p',
+                handlers=[
+                    log.FileHandler('capa_datos.log'),
+                    log.StreamHandler()
+                ])
+```
+
+Then control it from the environment — no code changes needed:
+
+```bash
+# Development: see everything
+LOG_LEVEL=DEBUG python main.py
+
+# Production: only warnings and above
+LOG_LEVEL=WARNING python main.py
+```
+</Tip>
+
+---
+
+## Setting Up Logging Step by Step
+
+<Steps>
+  <Step title="Import the logging module">
+    Python's `logging` module is part of the standard library — no installation required. Import it with an alias for brevity.
+
+    ```python
+    import logging as log
+    ```
+  </Step>
+
+  <Step title="Call basicConfig() once at startup">
+    Configure the root logger exactly once, before any log calls. The best place is the top of your entry-point script or in a dedicated `logger_base.py` module.
+
+    ```python logger_base.py
+    import logging as log
+
+    log.basicConfig(level=log.DEBUG,
+                    format='%(asctime)s:%(levelname)s [%(filename)s:%(lineno)s] %(message)s',
+                    datefmt='%I:%M:%S %p',
+                    handlers=[
+                        log.FileHandler('capa_datos.log'),
+                        log.StreamHandler()
+                    ])
+    ```
+  </Step>
+
+  <Step title="Import the configured logger in every module">
+    Rather than calling `basicConfig()` again (it only works once), import the already-configured `log` object from `logger_base`.
+
+    ```python conexion.py
+    from logger_base import log
+
+    class Conexion:
+        @classmethod
+        def obtenerConexion(cls):
+            try:
+                # ... connect ...
+                log.debug(f'Conexión Exitosa: {cls._conexion}')
+            except Exception as e:
+                log.error(f'Ocurrió un error: {e}')
+    ```
+  </Step>
+
+  <Step title="Replace every print() with the right log level">
+    Match the severity to the situation — don't log everything as `DEBUG` just because it's convenient.
+
+    ```python
+    log.debug('Entering seleccionar(), executing SELECT')   # trace-level detail
+    log.info('Database connection established')              # normal milestone
+    log.warning('Retrying connection, attempt 2 of 3')      # recoverable issue
+    log.error(f'Query failed: {e}')                         # operation failed
+    log.critical('Cannot connect to database, shutting down') # fatal
+    ```
+  </Step>
+
+  <Step title="Verify output in the log file">
+    After running your application, open `capa_datos.log` to confirm every operation was recorded:
+
+    ```
+    02:47:13 PM:DEBUG [conexion.py:22] Conexión Exitosa: <connection object ...>
+    02:47:13 PM:DEBUG [conexion.py:32] Se abrió correctamente el cursor: <cursor object ...>
+    02:47:14 PM:DEBUG [persona_dao.py:28] Persona insertada: Persona(id=None, nombre='Ana', ...)
+    ```
+  </Step>
+</Steps>

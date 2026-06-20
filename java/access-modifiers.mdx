@@ -1,0 +1,324 @@
+---
+title: "Java Access Modifiers: public, protected, and package-private"
+sidebarTitle: "Access Modifiers"
+description: "Understand Java's four access levels — public, protected, package-private (default), and private — with real class examples from the Clase 3 exercises and the forEach loop."
+---
+
+Every field, method, and constructor in Java has an **access level** that determines which parts of your codebase can see and use it. Getting access control right is the foundation of **encapsulation** — one of the four pillars of OOP. When you hide implementation details behind a well-defined public interface, you are free to change the internals later without breaking code that depends on your class. Java provides four access levels, from most open to most restrictive: `public`, `protected`, package-private (the *default*, no keyword), and `private`.
+
+---
+
+## The Four Access Levels at a Glance
+
+| Modifier | Same Class | Same Package | Subclass (any package) | Other Packages |
+|----------|:----------:|:------------:|:----------------------:|:--------------:|
+| `public` | ✅ | ✅ | ✅ | ✅ |
+| `protected` | ✅ | ✅ | ✅ | ❌ |
+| *(default)* | ✅ | ✅ | ❌ (if different package) | ❌ |
+| `private` | ✅ | ❌ | ❌ | ❌ |
+
+<Note>
+  The table shows visibility from the **caller's** point of view. A subclass in a different package **can** access `protected` members, but a non-subclass in another package **cannot**.
+</Note>
+
+---
+
+## `public` — Accessible Everywhere
+
+A `public` member is visible to **any class in any package**. Use it for the intentional API of your class — the methods and constructors you want other code to call.
+
+<CodeGroup>
+
+```java title="Clase1.java (paquete1)"
+package paquete1;
+
+public class Clase1 {
+    public String atributoPublic = "Valor atributo public";
+
+    public Clase1() {
+        System.out.println("Constructor public");
+    }
+
+    public void metodoPublico() {
+        System.out.println("Método public");
+    }
+}
+```
+
+```java title="TestModificadoresAcceso.java (test package)"
+package test;
+
+import paquete1.Clase1;
+
+public class TestModificadoresAcceso {
+    public static void main(String[] args) {
+        Clase1 clase1 = new Clase1();
+        // Both the field and the method are reachable from a different package
+        System.out.println("clase1 = " + clase1.atributoPublic);
+        clase1.metodoPublico();
+    }
+}
+```
+
+</CodeGroup>
+
+**Output:**
+
+```
+Constructor public
+clase1 = Valor atributo public
+Método public
+```
+
+<Note>
+  Exposing fields directly as `public` (like `atributoPublic` above) is fine for demonstration purposes, but in production code you should make fields `private` and expose them through `public` getters/setters to preserve encapsulation.
+</Note>
+
+---
+
+## `protected` — Package + Subclasses
+
+A `protected` member is visible within the **same package** and also to **subclasses in any package**. This is the right modifier when you want child classes to be able to read or override something, while still keeping it hidden from unrelated code outside the package.
+
+```java title="Clase3.java (paquete2 — different package, extends Clase1)"
+package paquete2;
+
+import paquete1.Clase1;
+
+public class Clase3 extends Clase1 {
+    public Clase3() {
+        super("protected");   // calls Clase1's constructor
+        // ✅ Can access protected members inherited from Clase1
+        this.atributoProtected = "Accedemos desde la clase hija";
+        System.out.println("AtributoProtected = " + this.atributoProtected);
+        // ✅ Can also access public members
+        this.atributoPublic = "es totalmente publico";
+    }
+}
+```
+
+`Clase3` lives in `paquete2`, which is **different** from `paquete1` where `Clase1` is defined. Despite the package boundary, `Clase3` can still access `atributoProtected` because the `extends` relationship grants that privilege.
+
+<Tip>
+  Use `protected` sparingly. It is weaker than `private` and creates a coupling between a parent class and all its potential subclasses. Prefer exposing behaviour through `public` template methods and keeping fields `private`.
+</Tip>
+
+---
+
+## Package-Private (Default) — Same Package Only
+
+When you write **no access modifier at all**, the member is *package-private* (sometimes called *default*). It is visible to every class in the **same package** but invisible outside it — even to subclasses in a different package.
+
+<CodeGroup>
+
+```java title="Clase2.java (paquete1 — default class visibility)"
+package paquete1;
+
+// No 'public' on the class itself — also package-private!
+class Clase2 extends Clase1 {
+    String atributoDefault = "Valor del atributo default";   // no modifier → package-private
+
+    public Clase2() {
+        super();
+        this.atributoDefault = "Modificación del atributo default";
+        System.out.println("atributoDefault = " + this.atributoDefault);
+        this.metodoDefault();
+    }
+
+    void metodoDefault() {   // no modifier → package-private
+        System.out.println("metodoDefault");
+    }
+}
+```
+
+```java title="ClaseHija2.java (paquete1 — same package, can access default members)"
+package paquete1;
+
+public class ClaseHija2 extends Clase2 {
+    public ClaseHija2() {
+        super();
+        // ✅ Same package → can access atributoDefault and metodoDefault()
+        this.atributoDefault = "Modificacion del atributo default";
+        System.out.println("atributoDefault = " + this.atributoDefault);
+        this.metodoDefault();
+    }
+}
+```
+
+```java title="TestDefault.java (paquete1 — within the same package)"
+package paquete1;
+
+import paquete2.Clase4;
+
+public class TestDefault {
+    public static void main(String[] args) {
+        ClaseHija2 claseH2 = new ClaseHija2();
+        // ✅ Still in paquete1 — default members reachable
+        claseH2.atributoDefault = "Cambio desde la prueba";
+        System.out.println("claseH2 atributo default = " + claseH2.atributoDefault);
+
+        // Accessing a class from another package through its public API
+        Clase4 clase4 = new Clase4("Publico");
+        System.out.println(clase4.getAtributoPrivate());
+        clase4.setAtributoPrivate("Cambio");
+        System.out.println("clase4 = " + clase4.getAtributoPrivate());
+    }
+}
+```
+
+</CodeGroup>
+
+---
+
+## `private` — Same Class Only
+
+A `private` member is accessible **only within the class that declares it**. This is the strongest restriction and the default you should reach for first when designing a class. Even subclasses cannot directly access a parent's `private` fields — they must go through public or protected getters/setters.
+
+```java title="Clase4.java (paquete2) — demonstrating private"
+package paquete2;
+
+public class Clase4 {
+    private String atributoPrivate = "atributo privado";
+
+    // Private constructor — no external code can call 'new Clase4()' directly
+    private Clase4() {
+        System.out.println("Constructor privado");
+    }
+
+    // Public constructor delegates to the private one
+    public Clase4(String argumento) {
+        this();   // ✅ 'this()' can call private constructor within the same class
+        System.out.println("Constructor publico");
+    }
+
+    // Private method — only usable inside this class
+    private void metodoPrivado() {
+        System.out.println("Metodo privado");
+    }
+
+    // Public getters/setters expose the private field in a controlled way
+    public String getAtributoPrivate() {
+        return atributoPrivate;
+    }
+
+    public void setAtributoPrivate(String atributoPrivate) {
+        this.atributoPrivate = atributoPrivate;
+    }
+}
+```
+
+<Tip>
+  **Start with `private`.** Make a field or method `private` by default and only relax access when you have a concrete reason. This keeps the public API minimal and makes the class easier to change later without breaking callers.
+</Tip>
+
+---
+
+## The Enhanced `for-each` Loop
+
+Covered alongside access modifiers in Clase 3, the **enhanced `for` loop** (also called `forEach`) provides a cleaner syntax for iterating over arrays and collections without managing an index variable.
+
+### Syntax
+
+```java
+for (ElementType variableName : arrayOrCollection) {
+    // use variableName
+}
+```
+
+### With a Primitive Array
+
+```java title="TestForEach.java — iterating over primitives and objects"
+package test;
+
+public class TestForEach {
+    public static void main(String[] args) {
+
+        // Primitive array — traditional vs. forEach
+        int edades[] = {5, 6, 8, 9};
+        for (int edad : edades) {
+            System.out.println("edad = " + edad);
+        }
+
+        // Object array — same clean syntax
+        Persona personas[] = {
+            new Persona("Juan"),
+            new Persona("Carla"),
+            new Persona("Beatriz")
+        };
+
+        for (Persona persona : personas) {
+            System.out.println("persona = " + persona);
+        }
+    }
+}
+```
+
+**Output:**
+
+```
+edad = 5
+edad = 6
+edad = 8
+edad = 9
+persona = Persona{nombre=Juan}
+persona = Persona{nombre=Carla}
+persona = Persona{nombre=Beatriz}
+```
+
+<AccordionGroup>
+  <Accordion title="forEach vs. traditional for — when to use which">
+
+    | Scenario | Prefer |
+    |----------|--------|
+    | You only need to **read** each element | `for-each` — cleaner, less error-prone |
+    | You need the **index** (e.g., `array[i-1]`) | Traditional `for` |
+    | You need to **modify** the array element by index | Traditional `for` |
+    | Iterating a `List`, `Set`, or other `Iterable` | `for-each` |
+
+    The `for-each` loop cannot skip elements or iterate backwards, but for the common case of visiting every element in order it is the preferred style.
+
+  </Accordion>
+
+  <Accordion title="The Persona class used in the forEach example">
+
+    ```java title="Persona.java (domain package)"
+    package domain;
+
+    public class Persona {
+        private String nombre;
+
+        public Persona(String nombre) {
+            this.nombre = nombre;
+        }
+
+        public String getNombre()            { return nombre; }
+        public void   setNombre(String n)    { this.nombre = n; }
+
+        @Override
+        public String toString() {
+            return "Persona{" + "nombre=" + nombre + '}';
+        }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Quick Reference
+
+<CardGroup cols={2}>
+  <Card title="public" icon="globe">
+    Open to everyone. Use for the intentional API: constructors, service methods, and getters/setters.
+  </Card>
+  <Card title="protected" icon="shield-halved">
+    Open to the same package and to subclasses anywhere. Use for members you want child classes to inherit or override.
+  </Card>
+  <Card title="default (no keyword)" icon="box">
+    Open only within the same package. Useful for package-internal helper classes and utilities.
+  </Card>
+  <Card title="private" icon="lock">
+    Locked to the declaring class. The default choice for all fields and internal helper methods.
+  </Card>
+</CardGroup>

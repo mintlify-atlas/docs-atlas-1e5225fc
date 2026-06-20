@@ -1,0 +1,225 @@
+---
+title: "Method Overriding, Polymorphism, and instanceof in Java"
+sidebarTitle: "Polymorphism"
+description: "Master Java method overriding with @Override, runtime polymorphism using parent-type references, and safe type checking with the instanceof operator, from Clase 4."
+---
+
+Polymorphism is widely considered the most powerful concept in object-oriented programming. It lets you write a single method that accepts a parent type and then automatically executes the correct behaviour for whatever child type is actually passed at runtime — no `if/else` chains based on class names, no manual dispatch tables. When combined with method overriding, polymorphism lets your code be both flexible and closed for modification: you add new behaviour by adding new subclasses, not by editing existing code.
+
+---
+
+## Method Overriding with `@Override`
+
+**Overriding** lets a subclass replace a method it inherited from its parent with its own version. The method signature — name, parameter list, and return type — must match exactly. Java resolves which version to call at **runtime** based on the actual object type, not the declared variable type.
+
+### Rules for overriding
+
+- The method name and parameter list must be identical to the parent's.
+- The return type must be the same (or a covariant sub-type).
+- The access modifier cannot be more restrictive than the parent's.
+- Use `super.methodName()` inside the override to call the parent implementation before extending it.
+
+<Note>
+  The `@Override` annotation is technically optional — the program compiles without it. However, it is **strongly recommended** because it asks the compiler to verify that you are actually overriding an inherited method. Without it, a typo in the method name silently creates a new method instead of an override, which is a notoriously hard bug to spot.
+</Note>
+
+### Building the `Empleado` / `Gerente` hierarchy
+
+<Steps>
+  <Step title="Define the parent class with a base method">
+    `Empleado` exposes `obtenerDetalles()` that returns the employee's name and salary. Every subclass will override this method.
+
+    ```java title="domain/Empleado.java"
+    package domain;
+
+    public class Empleado {
+        protected String nombre;
+        protected double sueldo;
+
+        public Empleado(String nombre, double sueldo) {
+            this.nombre = nombre;
+            this.sueldo = sueldo;
+        }
+
+        // Base method — subclasses will override this
+        public String obtenerDetalles() {
+            return "Nombre: " + this.nombre + ", Sueldo: " + this.sueldo;
+        }
+
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public double getSueldo() { return sueldo; }
+        public void setSueldo(double sueldo) { this.sueldo = sueldo; }
+    }
+    ```
+  </Step>
+
+  <Step title="Override the method in the subclass">
+    `Gerente` extends `Empleado` and overrides `obtenerDetalles()`. It calls `super.obtenerDetalles()` to reuse the parent's logic and then appends the department.
+
+    ```java title="domain/Gerente.java"
+    package domain;
+
+    public class Gerente extends Empleado {
+        private String departamento;
+
+        public Gerente(String nombre, double sueldo, String departamento) {
+            super(nombre, sueldo);
+            this.departamento = departamento;
+        }
+
+        // @Override ensures the compiler checks the signature matches the parent
+        @Override
+        public String obtenerDetalles() {
+            return super.obtenerDetalles() + ", Departamento: " + this.departamento;
+        }
+
+        public String getDepartamento() { return departamento; }
+        public void setDepartamento(String departamento) { this.departamento = departamento; }
+    }
+    ```
+  </Step>
+
+  <Step title="Call the overridden method">
+    The `imprimir` helper accepts an `Empleado` reference. When a `Gerente` is passed, Java automatically calls `Gerente.obtenerDetalles()` — this is dynamic dispatch.
+
+    ```java title="test/TestSobreescritura.java"
+    package test;
+
+    import domain.*;
+
+    public class TestSobreescritura {
+        public static void main(String[] args) {
+            Empleado empleado1 = new Empleado("Juan", 10000);
+            imprimir(empleado1);
+            // Output: empleado = Nombre: Juan, Sueldo: 10000.0
+
+            Gerente gerente1 = new Gerente("Jose", 5000, "Sistemas");
+            imprimir(gerente1);
+            // Output: empleado = Nombre: Jose, Sueldo: 5000.0, Departamento: Sistemas
+        }
+
+        public static void imprimir(Empleado empleado) {
+            System.out.println("empleado = " + empleado.obtenerDetalles());
+        }
+    }
+    ```
+  </Step>
+</Steps>
+
+---
+
+## Polymorphism: Parent-Type Variables at Runtime
+
+Polymorphism means "many forms". In Java, a variable declared as a parent type can hold any object of that type **or any of its subclasses**. Which method actually runs is determined at runtime by the real type of the object stored in the variable.
+
+### Storing a child in a parent-type variable
+
+```java title="test/TestPolimorfismo.java"
+package test;
+
+import domain.*;
+
+public class TestSobreescritura {
+    public static void main(String[] args) {
+        Empleado empleado1 = new Empleado("Juan", 10000);
+        imprimir(empleado1);
+
+        // The same variable now points to a Gerente object — valid upcasting
+        empleado1 = new Gerente("Jose", 5000, "Sistemas");
+        imprimir(empleado1);
+    }
+
+    public static void imprimir(Empleado empleado) {
+        // At runtime, Java calls the correct override automatically
+        String detalles = empleado.obtenerDetalles();
+        System.out.println("detalles = " + detalles);
+    }
+}
+```
+
+### How dynamic dispatch works
+
+| Variable declared as | Object actually stored | Method called at runtime |
+|---|---|---|
+| `Empleado` | `new Empleado(...)` | `Empleado.obtenerDetalles()` |
+| `Empleado` | `new Gerente(...)` | `Gerente.obtenerDetalles()` |
+
+Java looks at the **object on the heap**, not the variable type, to decide which implementation to invoke. This is called **dynamic method dispatch** and it is what makes polymorphism work.
+
+---
+
+## Type Checking with `instanceof`
+
+Before you downcast a parent-type reference to a specific child type, always verify the real type with `instanceof`. Skipping this check risks a `ClassCastException` at runtime.
+
+### Basic `instanceof` usage
+
+```java title="test/TestInstanceOf.java"
+package test;
+
+import domain.*;
+
+public class TestSobreescritura {
+    public static void main(String[] args) {
+        Empleado empleado1 = new Empleado("Juan", 10000);
+        determinarTipo(empleado1);   // → Es de tipo Empleado
+
+        empleado1 = new Gerente("Jose", 5000, "Sistemas");
+        determinarTipo(empleado1);   // → Es de tipo Gerente
+    }
+
+    public static void determinarTipo(Empleado empleado) {
+        // Check most specific type first — order matters!
+        if (empleado instanceof Gerente) {
+            System.out.println("Es de tipo Gerente");
+        } else if (empleado instanceof Empleado) {
+            System.out.println("Es de tipo Empleado");
+        } else if (empleado instanceof Object) {
+            System.out.println("Es de tipo Object");
+        }
+    }
+}
+```
+
+<Note>
+  Always check for the **most specific (child) type first**. Because every `Gerente` is also an `Empleado`, placing the `Empleado` check first would match both and you would never reach the `Gerente` branch.
+</Note>
+
+### Safe downcast after `instanceof` — the `Empleado` exercise
+
+Once `instanceof` confirms the real type, the cast is safe and you can access child-only members such as `getDepartamento()`.
+
+```java title="test/TestInstanceOfEjercicio.java"
+package test;
+
+import domain.*;
+
+public class TestSobreescritura {
+    public static void main(String[] args) {
+        Empleado empleado1 = new Empleado("Juan", 10000);
+        determinarTipo(empleado1);
+
+        empleado1 = new Gerente("Jose", 5000, "Sistemas");
+        // determinarTipo(empleado1); // uncomment to run
+    }
+
+    public static void determinarTipo(Empleado empleado) {
+        if (empleado instanceof Gerente) {
+            System.out.println("Es de tipo Gerente");
+            // Safe cast — instanceof already confirmed the real type
+            Gerente gerente = (Gerente) empleado;
+            System.out.println("gerente = " + gerente.getDepartamento());
+        } else if (empleado instanceof Empleado) {
+            System.out.println("Es de tipo Empleado");
+            // Casting to Gerente here would throw ClassCastException — don't do it
+        } else if (empleado instanceof Object) {
+            System.out.println("Es de tipo Object");
+        }
+    }
+}
+```
+
+<Accordion title="Why check instanceof before every downcast?">
+  A reference variable of type `Empleado` can hold **any** subclass at runtime. If you blindly cast to `Gerente` when the object is actually a plain `Empleado`, Java throws `ClassCastException` and your program crashes. The `instanceof` guard eliminates that risk by confirming the real type before the cast executes.
+</Accordion>

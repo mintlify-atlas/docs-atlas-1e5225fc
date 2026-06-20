@@ -1,0 +1,203 @@
+---
+title: "N-Queens Solver: Backtracking Algorithm in Vanilla JavaScript"
+sidebarTitle: "N-Queens"
+description: "Explore a browser-based N-Queens puzzle solver built with vanilla JavaScript using recursive backtracking — place N queens on an N×N board with no conflicts, then render solutions as visual grids."
+---
+
+The N-Queens problem is one of the most classic puzzles in computer science: place **N queens** on an N×N chessboard such that no two queens threaten each other. This means no two queens can share the same row, column, or diagonal. Backtracking is the perfect fit for this kind of constraint-satisfaction problem — it explores every possibility depth-first, pruning dead-end paths early so we never waste time on positions already known to be invalid.
+
+This browser-based implementation lets you type any N between 4 and 13, click a button, and instantly see up to four valid solutions rendered as interactive visual chess boards with the ♛ queen symbol.
+
+---
+
+## The Algorithm
+
+The solver lives inside the `resolver()` function, which is triggered when the user clicks the button. It initialises an N×N board filled with `'.'` characters, then calls the recursive `backtrack()` function starting from row 0.
+
+<CodeGroup>
+
+```javascript title="resolver() — entry point"
+function resolver() {
+  const n = parseInt(document.getElementById("valorN").value);
+  const contenedor = document.getElementById("soluciones");
+
+  contenedor.innerHTML = "";
+
+  if (isNaN(n) || n < 4 || n > 13) {
+    contenedor.innerHTML =
+      "<p style='color: #dc2626; ...'>⚠️ Error: Por favor, introduce un número entre 4 y 13.</p>";
+    return;
+  }
+
+  const resultados = [];
+  const tablero = Array(n).fill().map(() => Array(n).fill('.'));
+
+  backtrack(0);          // start solving from row 0
+
+  // ... randomisation and rendering (see below)
+}
+```
+
+```javascript title="backtrack(fila) — recursive solver"
+function backtrack(fila) {
+  // Base case: all N rows filled → valid solution found
+  if (fila === n) {
+    resultados.push(tablero.map(r => r.join('')));
+    return;
+  }
+
+  // Try placing a queen in every column of the current row
+  for (let col = 0; col < n; col++) {
+    if (esValido(fila, col)) {
+      tablero[fila][col] = 'Q';   // place queen
+      backtrack(fila + 1);        // recurse to next row
+      tablero[fila][col] = '.';   // backtrack — remove queen
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+### The Validity Check — `esValido(fila, col)`
+
+Before placing a queen on `(fila, col)`, the algorithm verifies three independent constraints against all previously placed queens (rows 0 through `fila - 1`):
+
+```javascript title="esValido(fila, col) — three-direction check"
+function esValido(fila, col) {
+  // 1. Same column — scan straight up
+  for (let i = 0; i < fila; i++) {
+    if (tablero[i][col] === 'Q') return false;
+  }
+
+  // 2. Left diagonal — scan up-left (↖)
+  for (let i = fila - 1, j = col - 1; i >= 0 && j >= 0; i--, j--) {
+    if (tablero[i][j] === 'Q') return false;
+  }
+
+  // 3. Right diagonal — scan up-right (↗)
+  for (let i = fila - 1, j = col + 1; i >= 0 && j < n; i--, j++) {
+    if (tablero[i][j] === 'Q') return false;
+  }
+
+  return true;
+}
+```
+
+| Check | Direction | Logic |
+|---|---|---|
+| Column | ↑ straight up | same `col`, `i` from 0 to `fila - 1` |
+| Left diagonal | ↖ up-left | `i--` and `j--` until out of bounds |
+| Right diagonal | ↗ up-right | `i--` and `j++` until out of bounds |
+
+We only need to check rows *above* the current one because we place queens row-by-row — no queen has been placed below the current row yet.
+
+---
+
+## The Backtracking Flow
+
+<Steps>
+  <Step title="Start at row 0">
+    Call `backtrack(0)`. The board is empty — any column is valid for the first queen.
+  </Step>
+  <Step title="Place and recurse">
+    For each column in the current row, call `esValido()`. If it passes, mark the cell `'Q'` and call `backtrack(fila + 1)` to advance to the next row.
+  </Step>
+  <Step title="Base case reached">
+    When `fila === n`, every row has exactly one queen with no conflicts. Serialize the board with `tablero.map(r => r.join(''))` and push it into `resultados`.
+  </Step>
+  <Step title="Backtrack on dead ends">
+    If no column in the current row is valid, the function returns without finding a solution. The caller resets its own cell back to `'.'` and tries the next column — this is the *backtrack* step.
+  </Step>
+  <Step title="Collect all solutions">
+    The loop in `backtrack` continues through every column, so every possible queen placement is explored. `resultados` accumulates **all** valid solutions before the function unwinds completely.
+  </Step>
+</Steps>
+
+---
+
+## Rendering the Board
+
+Once all solutions have been collected, the solver builds a visual HTML grid for each solution. Each row of the serialized board string is split into individual cell characters, and a `<div class="celda">` is created for each one. If the character is `"Q"`, the queen symbol is injected via `innerHTML`:
+
+```javascript title="Rendering solutions as HTML grids"
+solucionesAMostrar.forEach(sol => {
+  const divTablero = document.createElement("div");
+  divTablero.className = "tablero";
+
+  sol.forEach(fila => {
+    const filaDiv = document.createElement("div");
+    filaDiv.className = "fila";
+
+    fila.split("").forEach(celda => {
+      const celdaDiv = document.createElement("div");
+      celdaDiv.className = "celda";
+
+      if (celda === "Q") {
+        celdaDiv.innerHTML = "<span class='reina'>♛</span>";
+      }
+
+      filaDiv.appendChild(celdaDiv);
+    });
+
+    divTablero.appendChild(filaDiv);
+  });
+
+  contenedor.appendChild(divTablero);
+});
+```
+
+The CSS uses `nth-child` selectors to apply the alternating dark/light chessboard pattern automatically — no extra JavaScript required for styling.
+
+---
+
+## Input Validation
+
+The solver validates `n` immediately before running. Values outside the range 4–13 are rejected with a styled error message rendered directly into the `#soluciones` container:
+
+```javascript title="Input validation"
+if (isNaN(n) || n < 4 || n > 13) {
+  contenedor.innerHTML =
+    "<p style='color: #dc2626; font-weight: bold; font-size: 1.2em; " +
+    "background-color: #fee2e2; padding: 15px; border-radius: 8px; " +
+    "border: 2px solid #fca5a5;'>" +
+    "⚠️ Error: Por favor, introduce un número entre 4 y 13.</p>";
+  return;
+}
+```
+
+The upper bound of 13 keeps the browser responsive — for N=13 there are 73,712 solutions, and computing them client-side still completes in milliseconds, while N=14+ can cause noticeable lag.
+
+---
+
+## Randomising the Output
+
+When the total number of solutions exceeds four, the solver picks four at random using an elegant one-liner sort trick before slicing:
+
+```javascript title="Random selection when solutions > 4"
+let solucionesAMostrar = resultados;
+
+if (resultados.length > 4) {
+  solucionesAMostrar = resultados
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 4);
+}
+```
+
+`Math.random()` returns a value in `[0, 1)`, so `0.5 - Math.random()` randomly produces a positive or negative comparator, effectively shuffling the array. Slicing the first four elements then gives a random subset of solutions to display — different every time you click.
+
+<Note>
+  The number of valid N-Queens solutions grows **exponentially** with N. For reference: N=4 has **2** solutions, N=8 has **92**, N=10 has **724**, and N=13 has **73,712**. The backtracking algorithm finds them all in milliseconds for these sizes, but complexity becomes impractical well above N=15.
+</Note>
+
+---
+
+## Key Concepts
+
+| Concept | How it's used |
+|---|---|
+| **Recursion** | `backtrack(fila + 1)` advances row-by-row, unwinding when a dead end is reached |
+| **Backtracking** | `tablero[fila][col] = '.'` resets the cell after a failed branch |
+| **Board as 2D array** | `Array(n).fill().map(() => Array(n).fill('.'))` creates a clean N×N grid |
+| **Solution accumulation** | Every time `fila === n`, the current board state is pushed into `resultados` |
+| **Constraint pruning** | `esValido()` eliminates invalid positions before recursing, cutting the search space dramatically |

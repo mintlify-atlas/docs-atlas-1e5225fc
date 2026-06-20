@@ -1,0 +1,322 @@
+---
+title: "PostgreSQL Transactions and Connection Pooling with psycopg2"
+sidebarTitle: "Transactions & Pooling"
+description: "Manage database transactions manually with commit and rollback in psycopg2, use the with statement for automatic transaction control, and implement connection pooling with SimpleConnectionPool."
+---
+
+A **transaction** is a group of SQL statements that are executed as a single, atomic unit. Either all of them succeed and are committed to the database, or none of them take effect — the database rolls back to its previous state. This guarantee is essential for data integrity: if you insert a new invoice line and then update a stock count in the same transaction, you can be certain you will never end up with one operation persisted and the other lost.
+
+---
+
+## Manual Transaction Management
+
+By default, psycopg2 opens a transaction automatically the moment you execute the first SQL statement. Changes are **not** written to disk until you explicitly call `conexion.commit()`. If something goes wrong, call `conexion.rollback()` to undo everything since the last commit.
+
+<Steps>
+
+### Disable autocommit (optional but explicit)
+
+Setting `conexion.autocommit = False` makes the default behaviour explicit. psycopg2 already has autocommit off by default, so this line is optional but serves as good documentation:
+
+```python title="transactions_part1.py"
+import psycopg2 as bd  # Esto es para poder conectarnos a Postgre
+
+conexion = bd.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    conexion.autocommit = False   # explicit — already the default
+    cursor = conexion.cursor()
+    sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
+    valores = ('Maria', 'Esparza', 'mesparza@mail.com')
+    cursor.execute(sentencia, valores)
+    print('Termina la transaccion')
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+finally:
+    conexion.close()
+```
+
+Without an explicit `commit()` in the `try` block, this insert is **never persisted** — the connection closes and the transaction is rolled back automatically.
+
+### Commit and rollback explicitly
+
+Add `conexion.commit()` in the `try` block to persist the changes, and `conexion.rollback()` in the `except` block to undo them on failure:
+
+```python title="transactions_part2.py"
+import psycopg2 as bd  # Para poder conectarnos a Postgre
+
+conexion = bd.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    cursor = conexion.cursor()
+    sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
+    valores = ('Maria', 'Esparza', 'mesparza@mail.com')
+    cursor.execute(sentencia, valores)
+    conexion.commit()   # Persist changes manually
+    print('Termina la transaccion.')
+except Exception as e:
+    conexion.rollback()
+    print(f'Ocurrió un error, se hizo un rollback: {e}')
+finally:
+    conexion.close()
+```
+
+### Group multiple statements in one transaction
+
+All statements between the connection opening and the `commit()` call belong to the same transaction. If any one of them fails, the `rollback()` undoes them all:
+
+```python title="transactions_part3.py"
+import psycopg2 as bd  # Esto es para poder conectarnos a Postgre
+
+conexion = bd.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    conexion.autocommit = False   # explicit
+    cursor = conexion.cursor()
+
+    sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
+    valores = ('Carlos', 'Lara', 'carloslara123@email.com')
+    cursor.execute(sentencia, valores)
+
+    sentencia = "UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s"
+    valores = ("Juan", "Juarez", "jcjuarez@email.com", 1)
+    cursor.execute(sentencia, valores)
+
+    conexion.commit()   # Commit both statements together
+    print('Termina la transacción')
+except Exception as e:
+    conexion.rollback()
+    print(f'Ocurrió un error, se hizo un rollback: {e}')
+finally:
+    conexion.close()
+```
+
+</Steps>
+
+---
+
+## Automatic Transactions with the `with` Statement
+
+Using `with conexion:` as a context manager removes the need to call `commit()` and `rollback()` manually:
+
+- If the `with` block exits **normally**, psycopg2 automatically calls `commit()`.
+- If the `with` block exits **via an exception**, psycopg2 automatically calls `rollback()`.
+
+```python title="transactions_with.py"
+import psycopg2 as bd  # Esto es para poder conectarnos a Postgre
+
+conexion = bd.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+try:
+    with conexion:                        # auto-commit on success, auto-rollback on error
+        with conexion.cursor() as cursor:
+            sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
+            valores = ('Alex', 'Rojas', 'arojas@mail.com')
+            cursor.execute(sentencia, valores)
+
+            sentencia = 'UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s'
+            valores = ('Juan Carlos', 'Roldan', 'jcroldan@mail.com', 1)
+            cursor.execute(sentencia, valores)
+
+except Exception as e:
+    print(f'Ocurrió un error, se hizo un rollback: {e}')
+finally:
+    conexion.close()
+
+print('Termina la transacción')
+```
+
+<Tip>
+  Prefer the `with conexion:` pattern for all write operations. It makes the
+  transaction boundaries explicit in the code structure and ensures you can
+  never accidentally forget a `commit()` or `rollback()`.
+</Tip>
+
+---
+
+## Error Handling in Transactions
+
+PostgreSQL has its own user/role system that is independent of the operating system. When a connection attempt fails — for example, because the role does not exist — the server returns a `FATAL` message that psycopg2 surfaces as an `OperationalError`. Always wrap connection code in a `try/except` to catch and display these messages cleanly:
+
+```python title="error_handling.py"
+import psycopg2
+
+# Passing a non-existent user triggers an OperationalError with a detailed
+# FATAL message from PostgreSQL explaining exactly why the connection was refused.
+# Example: user='postgres1' instead of user='postgres'
+conexion = psycopg2.connect(
+    user='postgres',
+    password='admin',
+    host='127.0.0.1',
+    port='5432',
+    database='test_bd'
+)
+
+try:
+    with conexion:
+        with conexion.cursor() as cursor:
+            sentencia = 'SELECT * FROM persona WHERE id_persona=%s'
+            id_persona = input('Digite un id para la búsqueda: ')
+            cursor.execute(sentencia, (id_persona,))
+            registros = cursor.fetchone()
+            print(registros)
+
+except Exception as e:
+    print(f'Ocurrió un error: {e}')
+
+finally:
+    conexion.close()
+
+# https://www.psycopg.org/docs/usage.html
+```
+
+Common exceptions you may encounter:
+
+| Exception | Typical cause |
+|---|---|
+| `psycopg2.OperationalError` | Wrong credentials, host unreachable, database does not exist |
+| `psycopg2.errors.InternalError` | Transaction aborted; a previous statement failed and was not rolled back |
+| `psycopg2.ProgrammingError` | Bad SQL syntax or referencing a non-existent table/column |
+
+---
+
+## Connection Pooling
+
+Opening a new TCP connection to PostgreSQL for every query is expensive. A **connection pool** keeps a set of open connections alive and lends them out to application code on demand, dramatically reducing latency and resource usage.
+
+psycopg2 ships with `psycopg2.pool.SimpleConnectionPool` — a thread-safe pool suitable for single-threaded scripts and simple multi-threaded applications.
+
+### Creating the Pool
+
+Encapsulate the pool in a class so there is always exactly one pool instance (singleton pattern via the `_pool` class variable):
+
+```python title="connection_pool.py"
+from psycopg2 import pool
+import sys
+
+class Conexion:
+    _DATABASE = "test_bd"
+    _USERNAME = "postgres"
+    _PASSWORD = "admin"
+    _DB_PORT  = "5432"
+    _HOST     = "127.0.0.1"
+    _MIN_CON  = 1   # minimum number of connections kept alive
+    _MAX_CON  = 5   # maximum number of connections in the pool
+    _pool     = None
+
+    @classmethod
+    def obtenerPool(cls):
+        if cls._pool is None:
+            try:
+                cls._pool = pool.SimpleConnectionPool(
+                    cls._MIN_CON,
+                    cls._MAX_CON,
+                    host=cls._HOST,
+                    user=cls._USERNAME,
+                    password=cls._PASSWORD,
+                    port=cls._DB_PORT,
+                    database=cls._DATABASE
+                )
+                print(f'Creación del pool exitosa: {cls._pool}')
+                return cls._pool
+            except Exception as e:
+                print(f'Ocurrió un error al obtener el pool: {e}')
+                sys.exit()
+        else:
+            return cls._pool
+```
+
+<Note>
+  The pool is configured with `_MIN_CON = 1` and `_MAX_CON = 5`. psycopg2
+  opens the minimum number of connections when the pool is first created and
+  grows up to the maximum as demand increases. Requesting more connections than
+  `_MAX_CON` raises a `PoolError`.
+</Note>
+
+### Obtaining Connections from the Pool
+
+Call `pool.getconn()` to borrow a connection and `pool.putconn()` to return it when done. The `obtenerConexion()` class method wraps this pattern:
+
+```python title="using_the_pool.py"
+from psycopg2 import pool
+import sys
+
+class Conexion:
+    _DATABASE = "test_bd"
+    _USERNAME = "postgres"
+    _PASSWORD = "admin"
+    _DB_PORT  = "5432"
+    _HOST     = "127.0.0.1"
+    _MIN_CON  = 1
+    _MAX_CON  = 5
+    _pool     = None
+
+    @classmethod
+    def obtenerConexion(cls):
+        conexion = cls.obtenerPool().getconn()
+        print(f'Conexión obtenida del pool: {conexion}')
+        return conexion
+
+    @classmethod
+    def obtenerPool(cls):
+        if cls._pool is None:
+            try:
+                cls._pool = pool.SimpleConnectionPool(
+                    cls._MIN_CON,
+                    cls._MAX_CON,
+                    host=cls._HOST,
+                    user=cls._USERNAME,
+                    password=cls._PASSWORD,
+                    port=cls._DB_PORT,
+                    database=cls._DATABASE
+                )
+                print(f'Creación del pool exitosa: {cls._pool}')
+                return cls._pool
+            except Exception as e:
+                print(f'Ocurrió un error al obtener el pool: {e}')
+                sys.exit()
+        else:
+            return cls._pool
+
+
+if __name__ == "__main__":
+    conexion1 = Conexion.obtenerConexion()
+    conexion2 = Conexion.obtenerConexion()
+    conexion3 = Conexion.obtenerConexion()
+    conexion4 = Conexion.obtenerConexion()
+    conexion5 = Conexion.obtenerConexion()
+    # Requesting a 6th connection would raise PoolError (MAX_CON = 5)
+```
+
+Each call to `Conexion.obtenerConexion()` borrows one slot from the pool. Because `_MAX_CON = 5`, the example above exhausts the pool on the fifth call. In production code, always return connections promptly:
+
+```python title="return_connection.py"
+# After finishing work with a borrowed connection, return it to the pool:
+Conexion.obtenerPool().putconn(conexion1)
+```
+
+<Tip>
+  For production applications, consider wrapping borrowed connections in a
+  `try / finally` block to guarantee they are always returned to the pool, even
+  when an exception occurs. This prevents pool exhaustion under error conditions.
+</Tip>
