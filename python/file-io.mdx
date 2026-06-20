@@ -1,7 +1,7 @@
 ---
 title: "Python File I/O: Reading, Writing, and Context Managers"
 sidebarTitle: "File I/O"
-description: "Open, read, and write text files in Python using open(), specify character encodings, use the with statement as a context manager, and manage file handles safely — from Clase 2."
+description: "Read and write text files in Python using open() with explicit modes and encodings, and manage file handles safely with the with statement."
 ---
 
 Python's built-in `open()` function gives you direct access to the filesystem without any imports. What makes Python file handling distinctive is the **context manager** protocol: the `with` statement guarantees that a file handle is closed the moment the block exits — whether the code inside succeeds, raises an exception, or is interrupted. Relying on manual `open()` / `close()` pairs is fragile; relying on `with` is not.
@@ -27,7 +27,7 @@ Python's built-in `open()` function gives you direct access to the filesystem wi
 ### Writing a file without encoding
 
 ```python 1.1 - Introducción al manejo de archivos
-# Declaramos una variable
+#Declaramos una variable
 try:
     archivo = open("prueba.txt", "w")   # 'w' = write
     archivo.write("Programamos con diferentes tipos de archivos, ahora en txt.\n")
@@ -56,8 +56,7 @@ except Exception as e:
     print(e)
 finally:                    # siempre se ejecuta
     archivo.close()         # Con esto se debe cerrar el archivo
-
-# archivo.write('Todo quedo perfecto')  ← error: handle already closed
+# archivo.write('Todo quedo perfecto'): este es un error
 ```
 
 ## Reading Files
@@ -86,26 +85,23 @@ print(archivo.read())
 ### Advanced reading patterns
 
 ```python 1.4 - Más formas de trabajar con archivos / leer_archivos.py
-archivo = open('prueba.txt', 'r', encoding='utf8')
+archivo = open('prueba.txt', 'r',
+    encoding='utf8')  # las letras son: 'r' read, 'a' append, 'w' write, 'x'
 
-# print(archivo.read())          # todo el contenido de una vez
-# print(archivo.read(16))        # primeros 16 caracteres
-# print(archivo.read(10))        # continúa desde donde quedó el cursor
+# print(archivo.read())
+# print(archivo.read(16))
+# print(archivo.read(10))  # Continuamos desde la línea anterior
+# print(archivo.readline())
+# print(archivo.readline())
 
-# print(archivo.readline())      # primera línea
-# print(archivo.readline())      # segunda línea
-
-# Iterar línea por línea
+# vamos a iterar el archivo, cada una de las líneas
 # for linea in archivo:
-#     print(linea)
+    # print(linea): iteramos todos los elementos del archivo
+# print(archivo.readlines()[11])  # accedemos al archivo como si fuera una lista
 
-# Acceder como lista (indexable)
-# print(archivo.readlines()[11])
-
-# Copiar contenido a un segundo archivo en modo append
+# Anexamos información, copiamos a otro
 archivo2 = open('copia.txt', 'a', encoding='utf8')
 archivo2.write(archivo.read())
-
 archivo.close()    # cerramos el primer archivo
 archivo2.close()   # cerramos el segundo archivo
 
@@ -157,11 +153,10 @@ Always prefer `with open(...)` over manual `open()` / `close()` pairs. Manual pa
 # MANEJO DE CONTEXTO WITH: sintaxis simplificada, abre y cierra el archivo
 with open('prueba.txt', 'r', encoding='utf8') as archivo:
     print(archivo.read())
-
 # No hace falta ni el try, ni el finally
-# en el contexto de with lo que se ejecuta de manera automática
-# Utiliza diferentes métodos: __enter__ este es el que abre
-# Ahora el siguiente método es el que cierra: __exit__
+# en el contexto de with lo que se ejecuta de manera automatica
+# Utiliza diferentes metodos: __enter__ este es el que abre
+# Ahora el siguiente metodo es el que cierra: __exit__
 ```
 
 ### Part 2 — building a custom context manager class
@@ -181,12 +176,12 @@ class ManejoArchivos:
     def __exit__(self, tipo_exception, valor_exception, traza_error):
         print('cerramos el recurso'.center(50, '-'))
         if self.nombre:
-            self.nombre.close()            # garantizamos el cierre del archivo
+            self.nombre.close()            # Cerramos el archivo
 ```
 
 Use the custom context manager exactly like the built-in one:
 
-```python using ManejoArchivos
+```python Using ManejoArchivos
 with ManejoArchivos('prueba.txt') as archivo:
     print(archivo.read())
 ```

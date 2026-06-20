@@ -1,12 +1,12 @@
 ---
-title: "Towers of Hanoi: Recursive Solution and Browser UI in JavaScript"
+title: "Towers of Hanoi: Interactive Browser Puzzle in JavaScript"
 sidebarTitle: "Towers of Hanoi"
-description: "Implement the Towers of Hanoi puzzle in JavaScript with a recursive algorithm, render three towers as interactive browser UI, track move count, and animate disk movement — from the Area Juegos project."
+description: "Towers of Hanoi in vanilla JavaScript: recursive solver, three clickable towers, live move counter, and animated auto-solve playback."
 ---
 
 The Towers of Hanoi is a mathematical puzzle with a deceptively simple rule set: move all **N disks** from tower **A** to tower **C**, using tower **B** as auxiliary, and never place a larger disk on top of a smaller one. Despite the simple rules, solving it optimally requires exactly **2ⁿ − 1** moves — and the recursive structure of that solution maps beautifully to JavaScript.
 
-This project implements a fully interactive browser UI with three clickable towers, live move counting, colored disks sized proportionally to their value, and an **auto-solve** button that animates the optimal solution step by step.
+This project implements a fully interactive browser UI with three clickable towers, live move counting, colored disks sized proportionally to their value, a victory alert when you complete the puzzle, and an **auto-solve** button that animates the optimal solution step by step.
 
 ---
 
@@ -131,6 +131,24 @@ If the move is invalid (attempting to place a larger disk on a smaller one), the
 
 ---
 
+## Victory Check
+
+After every successful move, `verificarVictoria()` checks whether all five disks have been stacked onto tower C (index 2). If so, a congratulatory `alert` fires after a short 200 ms delay — enough time for the final `renderizar()` call to update the UI before the dialog appears:
+
+```javascript title="verificarVictoria() — win condition check"
+function verificarVictoria() {
+  if (torres[2].length === 5) {
+    setTimeout(() => {
+      alert(
+        `¡Felicitaciones!\n\nCompletaste el juego en ${movimientos} movimientos.`
+      );
+    }, 200);
+  }
+}
+```
+
+---
+
 ## The Recursive Solver
 
 The auto-solve feature uses a classic recursive algorithm to generate the complete optimal move sequence. `generarMovimientos()` produces an ordered list of `[origin, destination]` pairs, then `resolverAutomaticamente()` plays them back with a 500 ms delay between each step.
@@ -195,7 +213,13 @@ The pre-computed solution table from the README shows all 31 moves (2⁵ − 1 =
 | 7    | A    | C  | | 23   | B    | A  |
 | 8    | A    | B  | | 24   | B    | C  |
 | 9    | C    | B  | | 25   | A    | C  |
-| ...  | ...  | ...| | 31   | A    | C  |
+| 10   | C    | A  | | 26   | A    | B  |
+| 11   | B    | A  | | 27   | C    | B  |
+| 12   | C    | B  | | 28   | A    | C  |
+| 13   | A    | C  | | 29   | B    | A  |
+| 14   | A    | B  | | 30   | B    | C  |
+| 15   | C    | B  | | 31   | A    | C  |
+| 16   | A    | C  | |      |      |    |
 
 This sequence is generated automatically by the recursive algorithm — you never have to hardcode it.
 

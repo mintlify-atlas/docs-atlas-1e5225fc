@@ -1,7 +1,7 @@
 ---
-title: "Python OOP and the DAO Pattern with PostgreSQL"
+title: "Python OOP: DAO Pattern and PostgreSQL Integration"
 sidebarTitle: "DAO Pattern"
-description: "Implement the Data Access Object pattern in Python using three classes — Persona, Conexion, and PersonaDao — to separate database logic from business logic, backed by PostgreSQL via psycopg2."
+description: "Apply the DAO pattern in Python with Persona, Conexion, and PersonaDao to isolate SQL, manage a singleton connection, and perform CRUD with psycopg2."
 ---
 
 The **Data Access Object (DAO)** pattern is a structural pattern that cleanly separates your domain objects from the code that reads and writes them to a database. Instead of scattering SQL strings across your application, every database interaction lives in one dedicated class — the DAO — making your code easier to test, maintain, and extend.
@@ -443,9 +443,9 @@ pip install python-dotenv psycopg2-binary
             return cursor.rowcount
 
         @classmethod
-        def eliminar(cls, persona: Persona) -> int:
+        def eliminar(cls, ccls_persona: Persona) -> int:
             cursor = Conexion.obtenerCursor()
-            cursor.execute(cls.__ELIMINAR, (persona.get_id_persona(),))
+            cursor.execute(cls.__ELIMINAR, (ccls_persona.get_id_persona(),))
             Conexion.obtenerConexion().commit()
             return cursor.rowcount
     ```

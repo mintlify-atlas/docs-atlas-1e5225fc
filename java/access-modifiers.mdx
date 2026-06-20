@@ -1,7 +1,7 @@
 ---
-title: "Java Access Modifiers: public, protected, and package-private"
+title: "Java Access Modifiers: public, protected, default, private"
 sidebarTitle: "Access Modifiers"
-description: "Understand Java's four access levels — public, protected, package-private (default), and private — with real class examples from the Clase 3 exercises and the forEach loop."
+description: "Master Java's four access levels — public, protected, package-private, and private — illustrated with real class examples from the Clase 3 exercises."
 ---
 
 Every field, method, and constructor in Java has an **access level** that determines which parts of your codebase can see and use it. Getting access control right is the foundation of **encapsulation** — one of the four pillars of OOP. When you hide implementation details behind a well-defined public interface, you are free to change the internals later without breaking code that depends on your class. Java provides four access levels, from most open to most restrictive: `public`, `protected`, package-private (the *default*, no keyword), and `private`.
@@ -36,7 +36,7 @@ public class Clase1 {
     public String atributoPublic = "Valor atributo public";
 
     public Clase1() {
-        System.out.println("Constructor public");
+        System.out.println("Contructor public");
     }
 
     public void metodoPublico() {
@@ -65,13 +65,13 @@ public class TestModificadoresAcceso {
 **Output:**
 
 ```
-Constructor public
+Contructor public
 clase1 = Valor atributo public
 Método public
 ```
 
 <Note>
-  Exposing fields directly as `public` (like `atributoPublic` above) is fine for demonstration purposes, but in production code you should make fields `private` and expose them through `public` getters/setters to preserve encapsulation.
+  The source prints `"Contructor public"` — the word *Constructor* is missing an 's'. This is a typo in the original source file, reproduced here for accuracy. Exposing fields directly as `public` (like `atributoPublic` above) is also fine for demonstration, but in production code you should make fields `private` and expose them through `public` getters/setters to preserve encapsulation.
 </Note>
 
 ---
@@ -225,7 +225,7 @@ for (ElementType variableName : arrayOrCollection) {
 }
 ```
 
-### With a Primitive Array
+### With a Primitive Array and Objects
 
 ```java title="TestForEach.java — iterating over primitives and objects"
 package test;
@@ -233,7 +233,7 @@ package test;
 public class TestForEach {
     public static void main(String[] args) {
 
-        // Primitive array — traditional vs. forEach
+        // Primitive array — forEach syntax
         int edades[] = {5, 6, 8, 9};
         for (int edad : edades) {
             System.out.println("edad = " + edad);
@@ -291,8 +291,8 @@ persona = Persona{nombre=Beatriz}
             this.nombre = nombre;
         }
 
-        public String getNombre()            { return nombre; }
-        public void   setNombre(String n)    { this.nombre = n; }
+        public String getNombre()         { return nombre; }
+        public void   setNombre(String n) { this.nombre = n; }
 
         @Override
         public String toString() {

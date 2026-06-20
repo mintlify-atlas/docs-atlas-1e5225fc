@@ -1,7 +1,7 @@
 ---
 title: "Varargs, Enumerations, and Initialization Blocks in Java"
 sidebarTitle: "Varargs & Enums"
-description: "Explore Java varargs for variable-length arguments, enum declarations with attributes, and static and instance initialization blocks, from Clase 2 exercises."
+description: "Java varargs, enum declarations with attributes and constructors, and static vs. instance initialization blocks — from the Clase 2 exercises."
 ---
 
 Varargs, enumerations, and initialization blocks are three features that go beyond basic field declarations and constructors, each giving you more control over **how a class and its members are configured**. Varargs let a method accept any number of arguments without forcing the caller to build an array. Enumerations replace fragile magic strings or integer constants with type-safe named values — and they can carry their own data. Initialization blocks let you run setup logic **before** a constructor executes, with a strict and predictable order of execution that is worth understanding deeply. Together these patterns make class designs cleaner, safer, and easier to extend.
@@ -55,8 +55,8 @@ public class TestArgumentosVariables {
     }
 
     private static void variosParametros(String nombre, String apellido, int... numeros) {
-        System.out.println("Nombre: "   + nombre);
-        System.out.println("Apellido: " + apellido);
+        System.out.println("Nombre: " + nombre);
+        System.out.println("Apellido" + apellido);
         imprimirNumeros(numeros);   // pass the int[] directly
     }
 
@@ -67,6 +67,10 @@ public class TestArgumentosVariables {
     }
 }
 ```
+
+<Note>
+  Notice that `variosParametros` prints `"Apellido"` without a colon separator — that is exactly how it appears in the source. A `: ` is missing before the `apellido` value, so the output reads `ApellidoMalcorra`. This is a minor omission in the original code worth correcting in your own projects.
+</Note>
 
 **What happens at each call:**
 
@@ -161,7 +165,7 @@ public enum Continentes {
     AFRICA  (53, "1.2 billones"),
     EUROPA  (46, "1.1 billones"),
     ASIA    (44, "1.9 billones"),
-    AMERICA (34, "150.2 billones"),
+    AMERICA (34, "150,2 billones"),
     OCEANIA (14, "1.2 billones");
 
     // Fields — each constant gets its own copy
@@ -170,49 +174,61 @@ public enum Continentes {
 
     // Constructor — called once per constant at class load time
     Continentes(int paises, String habitantes) {
-        this.paises     = paises;
-        this.habitantes = habitantes;
+        this.paises = paises;
+        // Note: this.habitantes is not assigned in the source constructor
     }
 
     // Getters
-    public int    getPaises()      { return paises; }
-    public String getHabitantes()  { return habitantes; }
+    public int    getPaises()     { return paises; }
+    public String getHabitantes() { return habitantes; }
 }
 ```
 
 ```java title="TestEnumeraciones.java (using Continentes)"
 package test;
 
+import enumeraciones.Dias;
+
 public class TestEnumeraciones {
     public static void main(String[] args) {
         System.out.println("Continente No. 1: " + Continentes.AFRICA);
-        System.out.println("No. de paises: "
+        System.out.println("No. de paises en el 1er. continente: "
                 + Continentes.AFRICA.getPaises());
-        System.out.println("No. de habitantes: "
+        System.out.println("No. de habitantes en el 1er. continente: "
                 + Continentes.AFRICA.getHabitantes());
 
         System.out.println("Continente No. 2: " + Continentes.EUROPA);
-        System.out.println("No. de paises: "
+        System.out.println("No. de paises en el 2do. continente: "
                 + Continentes.EUROPA.getPaises());
-        System.out.println("No. de habitantes: "
+        System.out.println("No. de habitantes en el 2do. continente: "
                 + Continentes.EUROPA.getHabitantes());
 
         System.out.println("Continente No. 3: " + Continentes.ASIA);
-        System.out.println("No. de paises: "
+        System.out.println("No. de paises en el 3er. continente: "
                 + Continentes.ASIA.getPaises());
+        System.out.println("No. de habitantes en el 3er. continente: "
+                + Continentes.ASIA.getHabitantes());
 
         System.out.println("Continente No. 4: " + Continentes.AMERICA);
-        System.out.println("No. de paises: "
+        System.out.println("No. de paises en el 4to. continente: "
                 + Continentes.AMERICA.getPaises());
+        System.out.println("No. de habitantes en el 4to. continente: "
+                + Continentes.AMERICA.getHabitantes());
 
         System.out.println("Continente No. 5: " + Continentes.OCEANIA);
-        System.out.println("No. de paises: "
+        System.out.println("No. de paises en el 5to. continente: "
                 + Continentes.OCEANIA.getPaises());
+        System.out.println("No. de habitantes en el 5to. continente: "
+                + Continentes.OCEANIA.getHabitantes());
     }
 }
 ```
 
 </CodeGroup>
+
+<Warning>
+  The source `Continentes` constructor only assigns `this.paises` — the `this.habitantes = habitantes;` line is missing. As a result, `getHabitantes()` always returns `null` at runtime. In your own code, add `this.habitantes = habitantes;` inside the constructor body to fix this.
+</Warning>
 
 **How enum constructors differ from class constructors:**
 
@@ -243,10 +259,10 @@ public class Persona {
     private final int idPersona;
     private static int contadorPersonas;
 
-    static { // Static initialization block
+    static { // Bloque de inicializacion estatico
         System.out.println("Ejecucion del bloque estatico");
         ++Persona.contadorPersonas;
-        // this.idPersona = 10;  // ❌ Error — 'this' does not exist in a static context
+        //idPersona = 10; No es estatico, por esto tenemos un error
     }
 }
 ```
@@ -270,6 +286,7 @@ public class Persona {
     static {
         System.out.println("Ejecucion del bloque estatico");
         ++Persona.contadorPersonas;
+        //idPersona = 10; No es estatico, por esto tenemos un error
     }
 
     // ② Runs every time a new Persona is created (before the constructor)
@@ -277,6 +294,8 @@ public class Persona {
         System.out.println("Ejecucion del bloque NO estatico");
         this.idPersona = Persona.contadorPersonas++;
     }
+
+    // Los bloques de inicializacion se ejecutan antes del constructor
 
     // ③ Runs after the instance block
     public Persona() {
@@ -299,6 +318,8 @@ import domain.Persona;
 public class TestBloqueInicializacion {
     public static void main(String[] args) {
         Persona persona1 = new Persona();
+
+        // Mostramos el estado final tras inicializar
         System.out.println("persona1 = " + persona1);
 
         Persona persona2 = new Persona();

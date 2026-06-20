@@ -1,7 +1,7 @@
 ---
 title: "JavaBeans: Encapsulation with Private Fields and Accessors"
 sidebarTitle: "JavaBeans"
-description: "Learn the JavaBeans convention in Java — private fields, public getters and setters, and a no-arg constructor — with the Clase 8 JavaBeans exercise as a working example."
+description: "Learn the JavaBeans convention: private fields, public getters and setters, and a no-arg constructor, using the Clase 8 persona class as an example."
 ---
 
 A **JavaBean** is a plain Java class that follows a well-known set of conventions so that tools — IDEs, frameworks like Spring and JPA, serialization libraries, and visual builders — can inspect and manipulate its properties automatically, without needing custom code for every class. The specification is simple, but its impact is enormous: almost every Java framework you will encounter relies on it.
@@ -70,22 +70,19 @@ public class persona implements Serializable {
     private String nombre;
     private String apellido;
 
-    // Rule 1 — mandatory no-arg constructor
+    //Constructor vacio: Esto es obligatorio
     public persona() {
     }
 
-    // Convenience constructor (optional, not part of the spec)
     public persona(String nombre, String apellido) {
         this.nombre = nombre;
         this.apellido = apellido;
     }
 
-    // Rule 3 — public getter
     public String getNombre() {
         return nombre;
     }
 
-    // Rule 3 — public setter
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
@@ -116,18 +113,12 @@ import domain.Persona;
 
 public class TestJavaBeans {
     public static void main(String[] args) {
-        // Instantiate with the no-arg constructor
         Persona persona = new Persona();
-
-        // Set values through public setters
         persona.setNombre("Juan");
         persona.setApellido("Perez");
-
-        // toString() gives a readable summary
         System.out.println("persona = " + persona);
 
-        // Read values through public getters
-        System.out.println("Persona nombre: "   + persona.getNombre());
+        System.out.println("Persona nombre: " + persona.getNombre());
         System.out.println("Persona apellido: " + persona.getApellido());
     }
 }

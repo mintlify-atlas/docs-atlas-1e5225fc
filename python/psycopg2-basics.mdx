@@ -1,7 +1,7 @@
 ---
-title: "Connecting to PostgreSQL with psycopg2 in Python"
+title: "psycopg2 Basics: Connect to PostgreSQL from Python"
 sidebarTitle: "psycopg2 Basics"
-description: "Install psycopg2, open a connection to a PostgreSQL database, execute queries with a cursor, fetch results using fetchall() and fetchone(), and close connections safely."
+description: "Install psycopg2, open a PostgreSQL connection, execute queries with a cursor, and fetch results using fetchall() and fetchone() safely."
 ---
 
 `psycopg2` is the most widely used PostgreSQL adapter for Python. It implements the DB-API 2.0 specification and gives you a clean, Pythonic interface to open connections, execute SQL, and retrieve results. Whether you are building a small script or a production-grade API, psycopg2 is the de-facto standard for talking to PostgreSQL from Python.
@@ -122,10 +122,8 @@ conexion = psycopg2.connect(
 try:
     with conexion:
         with conexion.cursor() as cursor:
-            sentencia = 'SELECT * FROM persona WHERE id_persona IN %s'  # Placeholder
-            entrada = input('Digite los id_persona a buscar (separados por coma): ')
-            llaves_primarias = (tuple(entrada.split(', ')),)
-            cursor.execute(sentencia, llaves_primarias)
+            sentencia = 'SELECT * FROM persona WHERE id_persona IN (1, 2)'  # Placeholder
+            cursor.execute(sentencia)
             registros = cursor.fetchall()  # Returns a list of tuples
             for registro in registros:
                 print(registro)

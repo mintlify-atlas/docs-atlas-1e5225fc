@@ -1,7 +1,7 @@
 ---
-title: "Python Exception Handling: try, except, else, finally, and Custom Exceptions"
-sidebarTitle: "Exceptions"
-description: "Handle errors in Python using try-except blocks, process specific exception types, use else and finally clauses, and create custom exception classes — from Clase 1."
+title: "Python Exception Handling: try, except, and Custom Errors"
+sidebarTitle: "Exception Handling"
+description: "Handle Python exceptions using try-except, match specific exception types, use else and finally clauses, and define custom exception subclasses."
 ---
 
 Python uses a **runtime exception model**: when something goes wrong, the interpreter raises an exception object that travels up the call stack until it is caught or the program terminates. Unlike Java, Python draws no formal line between checked and unchecked exceptions — every exception is simply a subclass of `BaseException`, and you decide which ones to handle. The result is a leaner syntax, but it puts the responsibility on you to be precise about _which_ errors you expect.
@@ -40,7 +40,7 @@ print('seguimos...')
 Notice that execution continues after the `except` block — `print('seguimos...')` always runs because the exception was caught and the program did not crash.
 
 <Note>
-Catching bare `Exception` as a permanent solution is an anti-pattern. It silences errors you did not anticipate (such as `KeyboardInterrupt` bubbling up from nested code) and makes debugging much harder. Treat it as a last-resort catch-all, not a first line of defence.
+Catching bare `Exception` as a permanent solution is an anti-pattern. It silences errors you did not anticipate and makes debugging much harder. Treat it as a last-resort catch-all, not a first line of defence.
 </Note>
 
 ## Catching Specific Exception Types
@@ -131,7 +131,7 @@ class NumerosIgualesException(Exception):   # Extiende de la clase Exception
         self.message = mensaje
 ```
 
-```python raising the custom exception
+```python 1.6 - Raising the custom exception
 from NumerosIgualesException import NumerosIgualesException
 
 a = int(input('Digite el primer número: '))

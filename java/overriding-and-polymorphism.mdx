@@ -1,7 +1,7 @@
 ---
 title: "Method Overriding, Polymorphism, and instanceof in Java"
 sidebarTitle: "Polymorphism"
-description: "Master Java method overriding with @Override, runtime polymorphism using parent-type references, and safe type checking with the instanceof operator, from Clase 4."
+description: "Learn Java method overriding with @Override, understand runtime polymorphism through dynamic dispatch, and use instanceof for safe type checking."
 ---
 
 Polymorphism is widely considered the most powerful concept in object-oriented programming. It lets you write a single method that accepts a parent type and then automatically executes the correct behaviour for whatever child type is actually passed at runtime — no `if/else` chains based on class names, no manual dispatch tables. When combined with method overriding, polymorphism lets your code be both flexible and closed for modification: you add new behaviour by adding new subclasses, not by editing existing code.
@@ -115,7 +115,7 @@ Polymorphism means "many forms". In Java, a variable declared as a parent type c
 
 ### Storing a child in a parent-type variable
 
-```java title="test/TestPolimorfismo.java"
+```java title="test/TestSobreescritura.java"
 package test;
 
 import domain.*;
@@ -155,7 +155,7 @@ Before you downcast a parent-type reference to a specific child type, always ver
 
 ### Basic `instanceof` usage
 
-```java title="test/TestInstanceOf.java"
+```java title="test/TestSobreescritura.java"
 package test;
 
 import domain.*;
@@ -190,7 +190,7 @@ public class TestSobreescritura {
 
 Once `instanceof` confirms the real type, the cast is safe and you can access child-only members such as `getDepartamento()`.
 
-```java title="test/TestInstanceOfEjercicio.java"
+```java title="test/TestSobreescritura.java"
 package test;
 
 import domain.*;
@@ -201,7 +201,7 @@ public class TestSobreescritura {
         determinarTipo(empleado1);
 
         empleado1 = new Gerente("Jose", 5000, "Sistemas");
-        // determinarTipo(empleado1); // uncomment to run
+        //determinarTipo(empleado1);
     }
 
     public static void determinarTipo(Empleado empleado) {

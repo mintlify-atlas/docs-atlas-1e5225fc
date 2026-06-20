@@ -1,7 +1,7 @@
 ---
-title: "Object Casting, Upcasting, Downcasting, and hashCode in Java"
+title: "Java Object Casting: Upcasting, Downcasting, and hashCode"
 sidebarTitle: "Casting & Object"
-description: "Learn how to convert between object types in Java using upcasting and downcasting, override hashCode and equals for value comparison, and work with the root Object class."
+description: "Convert Java object types safely using upcasting and downcasting, override hashCode and equals from the Object class for correct value comparison."
 ---
 
 Polymorphic code is powerful precisely because a single `Empleado` variable can hold a `Gerente`, an `Escritor`, or any other subclass. But the flip side is that, from time to time, you need to reach past the parent interface and call a child-specific method — `getTipoEscritura()` on an `Escritor`, for example. That is where **casting** comes in: the controlled conversion of an object reference from one type in the hierarchy to another. Understanding the difference between safe implicit upcasting and the riskier explicit downcasting is essential for writing robust Java programs.
@@ -22,7 +22,8 @@ import domain.*;
 public class TestConversionObjetos {
     public static void main(String[] args) {
         // Upcasting: Escritor → Empleado (implicit, safe)
-        Empleado empleado = new Escritor("Juan", 5000, TipoEscritura.CLASICO);
+        Empleado empleado;
+        empleado = new Escritor("Juan", 5000, TipoEscritura.CLASICO);
 
         // obtenerDetalles() is available — it is defined on Empleado
         System.out.println(empleado.obtenerDetalles());
@@ -227,6 +228,6 @@ Overriding `toString()` on `Empleado` means that `System.out.println(empleado)` 
 ```java title="domain/Empleado.java — toString"
 @Override
 public String toString() {
-    return "Empleado{" + "nombre=" + nombre + ", sueldo=" + sueldo + '}';
+    return "Empleado{" + "nombre=" + nombre + ", sueldo =" + sueldo + '}';
 }
 ```

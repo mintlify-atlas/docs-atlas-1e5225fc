@@ -1,7 +1,7 @@
 ---
 title: "Java Inheritance: Building the MundoPC Class Hierarchy"
 sidebarTitle: "Inheritance"
-description: "Learn how to model a computer store system in Java using class inheritance, constructors, getters/setters, and toString — based on the MundoPC exercises from Clase 1."
+description: "Model a computer store in Java using inheritance, constructor chaining, static counters, and toString — based on the MundoPC exercises from Clase 1."
 ---
 
 The **MundoPC** project puts OOP principles into practice by modelling a simplified computer store. Instead of writing one giant class, we break the domain into focused, reusable classes: input devices share a common parent (`DispositivoEntrada`), a `Monitor` stands alone, a `Computadora` is assembled from those parts, and an `Orden` groups computers into a manageable list. Inheritance lets child classes reuse parent fields and methods while adding their own specialised behaviour — and constructor chaining through `super()` ensures every object is properly initialised at every level of the hierarchy.
@@ -105,7 +105,7 @@ public class Teclado extends DispositivoEntrada {
 
     @Override
     public String toString() {
-        return "Teclado{" + "idTeclado=" + idTeclado + ", " + super.toString() + '}';
+        return "Raton{" + "idRaton=" + idTeclado + ", " + super.toString() + '}';
     }
 }
 ```
@@ -130,6 +130,10 @@ public class Raton extends DispositivoEntrada {
 ```
 
 </CodeGroup>
+
+<Note>
+  The source `Teclado.java` contains a copy-paste bug in its `toString()` method: it prints `"Raton{"` and `"idRaton="` instead of `"Teclado{"` and `"idTeclado="`. The code above reflects the source exactly. In your own code you would want to use `"Teclado{"` and `"idTeclado="` to produce accurate output.
+</Note>
 
 **Key points:**
 
@@ -164,11 +168,11 @@ public class Monitor {
         this.tamanio = tamanio;
     }
 
-    public String getMarca()          { return this.marca; }
-    public void   setMarca(String m)  { this.marca = m; }
-    public double getTamanio()        { return this.tamanio; }
-    public void   setTamanio(double t){ this.tamanio = t; }
-    public int    getIdMonitor()      { return this.idMonitor; }
+    public String getMarca()           { return this.marca; }
+    public void   setMarca(String m)   { this.marca = m; }
+    public double getTamanio()         { return this.tamanio; }
+    public void   setTamanio(double t) { this.tamanio = t; }
+    public int    getIdMonitor()       { return this.idMonitor; }
 
     @Override
     public String toString() {
@@ -290,23 +294,23 @@ public class MundoPc {
         Raton    ratonGamer    = new Raton("Bluetooth", "Gamer");
         Computadora compuGamer = new Computadora("Computadora Gamer", monitorGamer, tecladoGamer, ratonGamer);
 
-        // --- Dell / Lenovo / Apple / Asus / Acer / MSI / Razer / Samsung (same pattern) ---
+        // --- Dell ---
         Monitor  monitorDell  = new Monitor("Dell", 27);
         Teclado  tecladoDell  = new Teclado("USB", "Dell");
         Raton    ratonDell    = new Raton("USB", "Dell");
         Computadora compuDell = new Computadora("Computadora Dell", monitorDell, tecladoDell, ratonDell);
 
-        // ... (Lenovo, Apple, Asus, Acer, MSI, Razer, Samsung follow the same pattern)
+        // Lenovo, Apple, Asus, Acer, MSI, Razer, Samsung follow the same pattern
+        // (filling orden1 up to the 10-computer limit)
 
         // --- Orders ---
         Orden orden1 = new Orden();
         Orden orden2 = new Orden();
 
-        // Fill orden1 up to the 10-computer limit
         orden1.agregarComputadora(compuHP);
         orden1.agregarComputadora(compuGamer);
         orden1.agregarComputadora(compuDell);
-        // ... add remaining computers
+        // ... add remaining computers up to 10
 
         // orden2 with a mixed-parts computer
         Computadora compusVarias = new Computadora(

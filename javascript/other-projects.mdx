@@ -1,7 +1,7 @@
 ---
-title: "Rock-Paper-Scissors, Knight's Tour, Avatar Game, and Login UI Projects"
+title: "Other Projects: Games and UI in Vanilla JavaScript"
 sidebarTitle: "Other Projects"
-description: "Four additional browser JavaScript projects from the course: a Rock-Paper-Scissors game, Knight's Tour puzzle solver, an Avatar character game, and an animated login form with CSS effects."
+description: "Four browser-based JavaScript projects: Rock-Paper-Scissors, Knight's Tour backtracking solver, Avatar combat game, and animated login form with CSS."
 ---
 
 Beyond the algorithmic puzzles, the *Area Juegos* section of the course produced four additional browser-based projects that cover a wide range of JavaScript concepts — from classic game logic and combinatorial backtracking to DOM manipulation, event-driven programming, and CSS animation. Each project runs entirely in the browser: no build tools, no frameworks, just plain HTML, CSS, and vanilla JavaScript.
@@ -37,11 +37,19 @@ function jugar(eleccionUsuario) {
   let jugador = eleccionUsuario;
   let pc = aleatorio(1, 3); // computer picks randomly
 
+  let textoJugador = document.getElementById("eleccion-jugador");
+  let textoPC = document.getElementById("eleccion-pc");
+  let textoResultado = document.getElementById("resultado-final");
+  let container = document.querySelector(".game-container");
+
   const opcionesTexto = {
     1: "✊ Piedra",
     2: "✋ Papel",
     3: "✌️ Tijera",
   };
+
+  textoJugador.innerText = "Tu elección: " + opcionesTexto[jugador];
+  textoPC.innerText      = "Elección PC: " + opcionesTexto[pc];
 
   let estado = "";
   let mensaje = "";
@@ -157,7 +165,7 @@ function salto(x, y, paso, tablero) {
 }
 ```
 
-The solution is printed to the console as a numbered grid showing the visit order of each cell. Execution time is measured with `Date.now()` before and after the call.
+The knight starts at `(0, 0)` with step 0 pre-marked, and `salto` is first called with `paso = 1`. The solution is printed to the console as a numbered grid showing the visit order of each cell, with execution time measured using `Date.now()`.
 
 ---
 
@@ -170,7 +178,7 @@ Inspired by *Avatar: The Last Airbender*, this game pits the player's chosen cha
 | Character | Element |
 |---|---|
 | 🔥 Zuko | Fire |
-| 🌪️ Aang | Air |
+| 💨 Aang | Air |
 | 💧 Katara | Water |
 | 🌱 Toph | Earth |
 
@@ -179,8 +187,8 @@ Attacks follow a cyclic win relationship:
 | Attack | Beats |
 |---|---|
 | 👊 Puñetazo | 🧹 Barrida |
-| 🦵 Patada | 👊 Puñetazo |
-| 🧹 Barrida | 🦵 Patada |
+| 🦶 Patada | 👊 Puñetazo |
+| 🧹 Barrida | 🦶 Patada |
 
 ### Core game logic
 
@@ -206,8 +214,8 @@ Rather than toggling a pre-existing element, each round appends a new `<p>` to t
 
 ```javascript title="avatar.js — dynamic message log"
 function crearMensaje(resultado) {
-  const seccionMensaje = document.getElementById("mensajes");
-  const parrafo = document.createElement("p");
+  let seccionMensaje = document.getElementById("mensajes");
+  let parrafo = document.createElement("p");
 
   parrafo.innerHTML =
     "Tu personaje atacó con " + ataqueJugador +
@@ -220,16 +228,16 @@ function crearMensaje(resultado) {
 
 ### Character selection flow
 
-The player picks a character via radio buttons and clicks *Seleccionar*. The `seleccionarPersonajeJugador()` function reads which radio is `checked`, updates the display, and immediately triggers `seleccionarPersonajeEnemigo()` to assign a random opponent:
+The player picks a character via radio buttons and clicks *Seleccionar*. The `seleccionarPersonajeJugador()` function reads which radio is `checked`, updates the display, and immediately triggers `seleccionarPersonajeEnemigo()` to assign a random opponent. The whole game is bootstrapped via a `window` load event:
 
 ```javascript title="avatar.js — player and enemy selection"
 function seleccionarPersonajeJugador() {
   const spanPersonajeJugador = document.getElementById("personaje-jugador");
 
-  if (inputZuko.checked)       spanPersonajeJugador.innerHTML = "Zuko";
-  else if (inputAang.checked)  spanPersonajeJugador.innerHTML = "Aang";
+  if (inputZuko.checked)        spanPersonajeJugador.innerHTML = "Zuko";
+  else if (inputAang.checked)   spanPersonajeJugador.innerHTML = "Aang";
   else if (inputKatara.checked) spanPersonajeJugador.innerHTML = "Katara";
-  else if (inputToph.checked)  spanPersonajeJugador.innerHTML = "Toph";
+  else if (inputToph.checked)   spanPersonajeJugador.innerHTML = "Toph";
   else {
     alert("No seleccionaste ningún personaje");
     return;
@@ -249,6 +257,9 @@ function seleccionarPersonajeEnemigo() {
     case 4: spanPersonajeEnemigo.innerHTML = "Toph";   break;
   }
 }
+
+// Entry point — wire up all event listeners once the page is fully loaded
+window.addEventListener("load", iniciarJuego);
 ```
 
 ---
@@ -261,22 +272,22 @@ This project showcases a visually animated login UI — the focus here is on CSS
 
 The visual effect is created with `.color` divs for the gradient backdrop and `.square` divs (with CSS custom property `--i`) for the floating animation. All squares are siblings of the main `.container`:
 
-```html title="index.html — animated background structure (simplified)"
-<section>
-  <div class="color"></div>
-  <div class="color"></div>
-  <div class="color"></div>
-  <div class="box">
-    <div class="square" style="--i:0"></div>
-    <div class="square" style="--i:1"></div>
-    <div class="square" style="--i:2"></div>
-    <div class="square" style="--i:3"></div>
-    <div class="square" style="--i:4"></div>
-    <div class="container">
-      <!-- login form lives here -->
-    </div>
-  </div>
-</section>
+```javascript title="index.html — animated background structure (simplified)"
+// <section>
+//   <div class="color"></div>
+//   <div class="color"></div>
+//   <div class="color"></div>
+//   <div class="box">
+//     <div class="square" style="--i:0"></div>
+//     <div class="square" style="--i:1"></div>
+//     <div class="square" style="--i:2"></div>
+//     <div class="square" style="--i:3"></div>
+//     <div class="square" style="--i:4"></div>
+//     <div class="container">
+//       <!-- login form lives here -->
+//     </div>
+//   </div>
+// </section>
 ```
 
 The CSS uses `--i` as a stagger offset so each square animates at a different phase, creating an organic floating effect without JavaScript.

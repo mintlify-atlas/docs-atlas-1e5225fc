@@ -1,7 +1,7 @@
 ---
-title: "CRUD Operations on PostgreSQL with psycopg2"
+title: "CRUD Operations on PostgreSQL with psycopg2 in Python"
 sidebarTitle: "CRUD Operations"
-description: "Perform INSERT, UPDATE, DELETE, and SELECT operations on PostgreSQL using psycopg2 parameterized queries, commit transactions, and check rowcount for affected rows — from Clase 5."
+description: "Run INSERT, SELECT, UPDATE, and DELETE on PostgreSQL using psycopg2 parameterized queries, executemany, commit transactions, and check rowcount."
 ---
 
 The four fundamental database operations — **Create, Read, Update, Delete** (CRUD) — map directly to the SQL statements `INSERT`, `SELECT`, `UPDATE`, and `DELETE`. psycopg2 lets you run all of them through the same `cursor.execute()` interface.
@@ -54,7 +54,7 @@ finally:
 Pass the SQL template and a tuple of values to `cursor.execute()`. The `with conexion:` block automatically commits on success and rolls back on exception:
 
 ```python title="insert_one.py"
-import psycopg2
+import psycopg2  # Esto es para poder conectarnos a Postgre
 
 conexion = psycopg2.connect(
     user='postgres',
@@ -193,7 +193,7 @@ try:
     with conexion:
         with conexion.cursor() as cursor:
             sentencia = 'DELETE FROM persona WHERE id_persona=%s'
-            entrada = input('Digite el número de registro a eliminar: ')
+            entrada = input('Digite el numero de registro a eliminar: ')
             valores = (7,)   # tuple of values
             cursor.execute(sentencia, valores)
             registros_eliminados = cursor.rowcount
@@ -222,7 +222,7 @@ try:
     with conexion:
         with conexion.cursor() as cursor:
             sentencia = 'DELETE FROM persona WHERE id_persona IN %s'
-            entrada = input('Digite los números de registro a eliminar (separados por coma): ')
+            entrada = input('Digite los numero de registro a eliminar (separados por coma): ')
             valores = (tuple(entrada.split(',')),)   # tuple of tuples
             cursor.execute(sentencia, valores)
             registros_eliminados = cursor.rowcount

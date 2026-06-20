@@ -1,7 +1,7 @@
 ---
-title: "PostgreSQL Transactions and Connection Pooling with psycopg2"
+title: "PostgreSQL Transactions and Connection Pooling in Python"
 sidebarTitle: "Transactions & Pooling"
-description: "Manage database transactions manually with commit and rollback in psycopg2, use the with statement for automatic transaction control, and implement connection pooling with SimpleConnectionPool."
+description: "Manage psycopg2 transactions with commit and rollback, use the with statement for automatic control, and speed up apps with SimpleConnectionPool."
 ---
 
 A **transaction** is a group of SQL statements that are executed as a single, atomic unit. Either all of them succeed and are committed to the database, or none of them take effect — the database rolls back to its previous state. This guarantee is essential for data integrity: if you insert a new invoice line and then update a stock count in the same transaction, you can be certain you will never end up with one operation persisted and the other lost.
@@ -59,46 +59,11 @@ conexion = bd.connect(
 )
 try:
     cursor = conexion.cursor()
-    sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
+    sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES  (%s, %s, %s)'
     valores = ('Maria', 'Esparza', 'mesparza@mail.com')
     cursor.execute(sentencia, valores)
     conexion.commit()   # Persist changes manually
     print('Termina la transaccion.')
-except Exception as e:
-    conexion.rollback()
-    print(f'Ocurrió un error, se hizo un rollback: {e}')
-finally:
-    conexion.close()
-```
-
-### Group multiple statements in one transaction
-
-All statements between the connection opening and the `commit()` call belong to the same transaction. If any one of them fails, the `rollback()` undoes them all:
-
-```python title="transactions_part3.py"
-import psycopg2 as bd  # Esto es para poder conectarnos a Postgre
-
-conexion = bd.connect(
-    user='postgres',
-    password='admin',
-    host='127.0.0.1',
-    port='5432',
-    database='test_bd'
-)
-try:
-    conexion.autocommit = False   # explicit
-    cursor = conexion.cursor()
-
-    sentencia = 'INSERT INTO persona(nombre, apellido, email) VALUES (%s, %s, %s)'
-    valores = ('Carlos', 'Lara', 'carloslara123@email.com')
-    cursor.execute(sentencia, valores)
-
-    sentencia = "UPDATE persona SET nombre=%s, apellido=%s, email=%s WHERE id_persona=%s"
-    valores = ("Juan", "Juarez", "jcjuarez@email.com", 1)
-    cursor.execute(sentencia, valores)
-
-    conexion.commit()   # Commit both statements together
-    print('Termina la transacción')
 except Exception as e:
     conexion.rollback()
     print(f'Ocurrió un error, se hizo un rollback: {e}')
@@ -154,41 +119,9 @@ print('Termina la transacción')
 
 ---
 
-## Error Handling in Transactions
+## Common Transaction Exceptions
 
-PostgreSQL has its own user/role system that is independent of the operating system. When a connection attempt fails — for example, because the role does not exist — the server returns a `FATAL` message that psycopg2 surfaces as an `OperationalError`. Always wrap connection code in a `try/except` to catch and display these messages cleanly:
-
-```python title="error_handling.py"
-import psycopg2
-
-# Passing a non-existent user triggers an OperationalError with a detailed
-# FATAL message from PostgreSQL explaining exactly why the connection was refused.
-# Example: user='postgres1' instead of user='postgres'
-conexion = psycopg2.connect(
-    user='postgres',
-    password='admin',
-    host='127.0.0.1',
-    port='5432',
-    database='test_bd'
-)
-
-try:
-    with conexion:
-        with conexion.cursor() as cursor:
-            sentencia = 'SELECT * FROM persona WHERE id_persona=%s'
-            id_persona = input('Digite un id para la búsqueda: ')
-            cursor.execute(sentencia, (id_persona,))
-            registros = cursor.fetchone()
-            print(registros)
-
-except Exception as e:
-    print(f'Ocurrió un error: {e}')
-
-finally:
-    conexion.close()
-
-# https://www.psycopg.org/docs/usage.html
-```
+PostgreSQL has its own user/role system that is independent of the operating system. Always wrap connection code in a `try/except` to catch and display error messages cleanly.
 
 Common exceptions you may encounter:
 

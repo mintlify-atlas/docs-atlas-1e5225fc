@@ -1,5 +1,5 @@
 ---
-title: "Repository Structure and File Naming Conventions"
+title: "Project Repository Structure and File Naming Guide"
 sidebarTitle: "Repo Structure"
 description: "How the Print-Estoy-Cansado-Jefe repository is organized by language and lesson, including file naming patterns and IntelliJ project layout."
 ---
@@ -14,34 +14,34 @@ The **Print-Estoy-Cansado-Jefe-TercerSemestre** repository is organized at the t
 Print-Estoy-Cansado-Jefe-TercerSemestre/
 ├── Java/
 │   ├── Clase 1/          # Inheritance: parent/child classes, first hierarchy
-│   ├── Clase 2/          # Enums, varargs, static members
-│   ├── Clase 3/          # Access modifiers, method overriding
-│   ├── Clase 4/          # Polymorphism
+│   ├── Clase 2/          # Varargs, enums, initializer blocks
+│   ├── Clase 3/          # forEach, autoboxing/unboxing, access modifiers
+│   ├── Clase 4/          # Method overriding, polymorphism, instanceof
 │   ├── Clase 5/          # Casting, Object class, abstract classes
 │   ├── Clase 7/          # Interfaces
-│   ├── Clase 8/          # JavaBeans conventions
-│   ├── Clase 9/          # Exception handling in Java
+│   ├── Clase 8/          # JavaBeans conventions and exception handling
+│   ├── Clase 9/          # Console application: menus, switch, try/catch
 │   └── Clase 10/         # Console application capstone (UML + implementation)
 │
 ├── Python/
 │   ├── Clase 1/          # Exception handling fundamentals
 │   ├── Clase 2/          # File I/O
-│   ├── Clase 3/          # Advanced file processing
+│   ├── Clase 3/          # Advanced file processing (lab: movie catalogue)
 │   ├── Clase 4/          # psycopg2: connecting to PostgreSQL
 │   ├── Clase 5/          # psycopg2: CRUD operations
 │   ├── Clase 6/          # Transaction management with psycopg2
-│   ├── Clase 7/          # Logging (+ UML diagram .uxf)
-│   ├── Clase 8/          # DAO pattern: Persona class and PersonaDAO
+│   ├── Clase 7/          # Logging, UML diagram (.uxf), and DAO scaffolding
+│   ├── Clase 8/          # DAO pattern: PersonaDAO implementation
 │   └── Clase 9/          # Connection pooling
 │
 ├── Javascript/
 │   ├── Clase 1/          # OOP in JS: MundoPC example
 │   ├── Clase 2/          # Strict mode, prototype-based OOP
 │   ├── Clase 3/          # Polymorphism, instanceof
-│   ├── Clase 4/          # Arrow functions and OOP patterns
-│   ├── Clase 5/          # Callbacks
-│   ├── Clase 6/          # setTimeout, setInterval, live clock project
-│   ├── Practica JS/      # Standalone JS practice exercises
+│   ├── Clase 4/          # Exception handling: try/catch, throw
+│   ├── Clase 5/          # Arrow functions
+│   ├── Clase 6/          # Callbacks, setTimeout, setInterval, live clock project
+│   ├── Practica JS/      # Standalone JS practice exercises (login form UI)
 │   └── Area Juegos - Clase 1/
 │       ├── NReinas/              # N-Queens solver
 │       ├── NReinas.js            # N-Queens standalone script
@@ -82,7 +82,7 @@ The **first number** matches the lesson (class) folder (`Clase N`), and the **se
 
 ## Java: `/Java/Clase N/`
 
-The Java section spans **10 lesson folders** (`Clase 1` through `Clase 10`, with `Clase 6` living inside `Clase 7` materials). All source files use the `.java` extension. Some lessons include `.uxf` UML diagram files created with UMLet.
+The Java section spans **9 lesson folders** (`Clase 1` through `Clase 10`, with no `Clase 6` directory in the repository). All source files use the `.java` extension. Some lessons include `.uxf` UML diagram files created with UMLet.
 
 Key characteristics:
 - Each `.java` file is typically a self-contained class or a small set of related classes introduced in that video segment.
@@ -98,7 +98,9 @@ The Python section spans **9 lesson folders** (`Clase 1` through `Clase 9`). All
 Key characteristics:
 - Lesson 4 is a transition point: it introduces `psycopg2` and direct PostgreSQL connectivity, shifting from pure Python OOP to database-integrated programming.
 - Lessons 5 and 6 build CRUD (Create, Read, Update, Delete) operations and transaction management on top of the connection established in Lesson 4.
-- Lessons 7–9 add production concerns: structured logging, the DAO design pattern (`PersonaDAO`), and connection pooling.
+- Lesson 7 covers logging and includes a UML diagram task alongside early DAO scaffolding files (note: some files inside the `Clase 7/` folder carry `8.x` segment numbers, reflecting a cross-lesson contribution from the team).
+- Lesson 8 contains the completed `PersonaDAO` implementation.
+- Lesson 9 introduces connection pooling.
 - Some filenames use underscores instead of spaces (e.g., `5.3_FuncionFetchAllParte2.py`), reflecting contributions from different team members — both conventions are valid.
 
 ---
@@ -112,10 +114,10 @@ The JavaScript section has **6 lesson folders** plus two additional areas:
 | `Clase 1/` | MundoPC OOP example in JS |
 | `Clase 2/` | Strict mode, prototype OOP |
 | `Clase 3/` | Polymorphism, `instanceof` checks |
-| `Clase 4/` | Arrow functions |
-| `Clase 5/` | Callback functions |
-| `Clase 6/` | `setTimeout`, `setInterval`, live clock (Tarea Especial - Reloj) |
-| `Practica JS/` | Standalone exercises and practice scripts |
+| `Clase 4/` | Exception handling: `try/catch`, `throw` |
+| `Clase 5/` | Arrow functions |
+| `Clase 6/` | Callbacks, `setTimeout`, `setInterval`, live clock (Tarea Especial - Reloj) |
+| `Practica JS/` | Standalone exercises, including a login form UI (Web Viva) |
 | `Area Juegos - Clase 1/` | Complete game and UI projects (see below) |
 
 The **`Area Juegos - Clase 1/`** folder contains fully implemented browser and scripting projects that apply the OOP and JavaScript skills learned in the lesson classes:

@@ -1,7 +1,7 @@
 ---
-title: "Abstract Classes and Interfaces for Java OOP Design"
+title: "Abstract Classes and Interfaces in Java OOP Design"
 sidebarTitle: "Abstracts & Interfaces"
-description: "Understand when to use abstract classes versus interfaces in Java, implement the IAccesoDatos CRUD interface, and define abstract methods like FiguraGeometrica.dibujar()."
+description: "Learn when to use abstract classes versus interfaces in Java, build the IAccesoDatos CRUD interface, and define abstract shape methods."
 ---
 
 One of the most consequential design decisions in any Java project is choosing between an **abstract class** and an **interface**. Both tools let you define a contract that subclasses or implementing classes must fulfil, but they do so for different reasons and with different trade-offs. Abstract classes model shared identity — a `FiguraGeometrica` that every concrete shape really *is* — while interfaces model shared capability — things a class *can do*, regardless of where it sits in the inheritance tree. Getting this choice right leads to code that is easy to extend; getting it wrong leads to brittle hierarchies that resist change.
@@ -73,6 +73,21 @@ public class Rectangulo extends FiguraGeometrica {
     public void dibujar() {
         System.out.println("Se imprime un: " + this.getClass().getSimpleName());
         // Output: Se imprime un: Rectangulo
+    }
+}
+```
+
+The test class stores a `Rectangulo` in a `FiguraGeometrica` variable and calls `dibujar()` through the abstract reference:
+
+```java title="test/TestAbstractas.java"
+package test;
+
+import domain.*;
+
+public class TestAbstractas {
+    public static void main(String[] args) {
+        FiguraGeometrica figura = new Rectangulo("Rectangulo");
+        figura.dibujar();
     }
 }
 ```
